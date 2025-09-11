@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from BinsparseFormat import BinsparseFormat
+from ..BinsparseFormat import BinsparseFormat
 
 def benchmark_matmul(xp, A_bench, B_bench):
     A = xp.from_benchmark(A_bench)

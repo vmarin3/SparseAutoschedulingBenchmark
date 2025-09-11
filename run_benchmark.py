@@ -1,14 +1,14 @@
 import time
-from Wrappers.NumpyWrapper import NumpyWrapper
-from Benchmarks.MatMul import benchmark_matmul, dg_matmul_dense_small, dg_matmul_dense_large, dg_matmul_sparse_small, dg_matmul_sparse_large
+from SparseAutoschedulingBenchmark.Wrappers.NumpyWrapper import NumpyWrapper
+from SparseAutoschedulingBenchmark.Benchmarks.MatMul import benchmark_matmul, dg_matmul_dense_small, dg_matmul_dense_large, dg_matmul_sparse_small, dg_matmul_sparse_large
 import argparse
 
 wrappers = {"numpy" : NumpyWrapper()}
 benchmarks = {"matmul" : benchmark_matmul}
 data_generators = {"matmul": {"dense_small" : dg_matmul_dense_small,
-                   "dense_large" : dg_matmul_dense_large,
-                   "sparse_small" : dg_matmul_sparse_small,
-                   "sparse_large" : dg_matmul_sparse_large}}
+                            "dense_large" : dg_matmul_dense_large,
+                            "sparse_small" : dg_matmul_sparse_small,
+                            "sparse_large" : dg_matmul_sparse_large}}
 
 def run_benchmark(xp, benchmark_function, benchmark_data_generator):
     avg_duration = 0 
@@ -24,7 +24,7 @@ def run_benchmark(xp, benchmark_function, benchmark_data_generator):
     return avg_duration, result
 
 def save_benchmark_result(duration, wrapper, benchmark, data_generator):
-    filename = f"src/sparse_autoscheduling_benchmark/Results/{wrapper}_{benchmark}_{data_generator}.bin"
+    filename = f"results/{wrapper}_{benchmark}_{data_generator}.bin"
     with open(filename, "w") as f:
         f.write(f"Duration: {duration}\n")
 

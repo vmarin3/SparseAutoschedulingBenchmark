@@ -1,5 +1,5 @@
-from Wrappers.AbstractWrapper import AbstractWrapper
-from BinsparseFormat import BinsparseFormat
+from .AbstractWrapper import AbstractWrapper
+from ..BinsparseFormat import BinsparseFormat
 import numpy as np
 
 class NumpyWrapper(AbstractWrapper):
