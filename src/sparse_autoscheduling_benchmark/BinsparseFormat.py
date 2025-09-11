@@ -8,8 +8,8 @@ class BinsparseFormat:
     def from_numpy(array : np.ndarray):
         data = dict()
         data["format"] = "dense"
-        data["values"] = array.flatten()
         data["shape"] = array.shape
+        data["values"] = array.flatten()
         return BinsparseFormat(data)
 
     @staticmethod
