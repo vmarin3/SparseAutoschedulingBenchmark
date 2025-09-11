@@ -31,16 +31,22 @@ def dg_matmul_dense_large():
 
 
 def dg_matmul_sparse_small():
-    A = sp.random(32, 32, density=0.1, format="coo", dtype=np.float32)
-    B = sp.random(32, 32, density=0.1, format="coo", dtype=np.float32)
+    rng = np.random.default_rng(0)
+    A = sp.random(32, 32, density=0.1, format="coo", dtype=np.float32, random_state=rng)
+    B = sp.random(32, 32, density=0.1, format="coo", dtype=np.float32, random_state=rng)
     A_bin = BinsparseFormat.from_coo((A.row, A.col), A.data, A.shape)
     B_bin = BinsparseFormat.from_coo((B.row, B.col), B.data, B.shape)
     return (A_bin, B_bin)
 
 
 def dg_matmul_sparse_large():
-    A = sp.random(4096, 4096, density=0.01, format="coo", dtype=np.float32)
-    B = sp.random(4096, 4096, density=0.01, format="coo", dtype=np.float32)
+    rng = np.random.default_rng(0)
+    A = sp.random(
+        4096, 4096, density=0.01, format="coo", dtype=np.float32, random_state=rng
+    )
+    B = sp.random(
+        4096, 4096, density=0.01, format="coo", dtype=np.float32, random_state=rng
+    )
     A_bin = BinsparseFormat.from_coo((A.row, A.col), A.data, A.shape)
     B_bin = BinsparseFormat.from_coo((B.row, B.col), B.data, B.shape)
     return (A_bin, B_bin)
