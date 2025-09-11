@@ -1,11 +1,11 @@
 import time
 from Wrappers.NumpyWrapper import NumpyWrapper
-from Benchmarks.DenseMM import benchmark_dense_mm, datagen_dense_mm_small
+from Benchmarks.MatMul import benchmark_matmul, datagen_dense_matmul_small, datagen_dense_matmul_large
 import argparse
 
 wrappers = {"numpy" : NumpyWrapper()}
-benchmarks = {"dense_mm" : benchmark_dense_mm}
-data_generators = {"dense_mm_small" : datagen_dense_mm_small}
+benchmarks = {"matmul" : benchmark_matmul}
+data_generators = {"dense_matmul_small" : datagen_dense_matmul_small, "dense_matmul_large" : datagen_dense_matmul_large}
 
 def run_benchmark(xp, benchmark_function, benchmark_data_generator):
     data = benchmark_data_generator()
@@ -19,8 +19,8 @@ def run_benchmark(xp, benchmark_function, benchmark_data_generator):
 def main():
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
     parser.add_argument("--wrapper", default="numpy", choices=list(wrappers.keys()), help="Execution wrapper to use")
-    parser.add_argument("--benchmark", default="dense_mm", choices=list(benchmarks.keys()), help="Benchmark to run")
-    parser.add_argument("--data-generator", default="dense_mm_small", choices=list(data_generators.keys()), help="Data generator to use")
+    parser.add_argument("--benchmark", default="matmul", choices=list(benchmarks.keys()), help="Benchmark to run")
+    parser.add_argument("--data-generator", default="dense_matmul_small", choices=list(data_generators.keys()), help="Data generator to use")
     args = parser.parse_args()
 
     xp = wrappers[args.wrapper]
