@@ -1,13 +1,13 @@
 import _operator  # noqa: F401
-import operator
-from collections import namedtuple
-from SparseAutoschedulingBenchmark.Wrappers.NumpyWrapper import NumpyWrapper
-from SparseAutoschedulingBenchmark.BinsparseFormat import BinsparseFormat
 
 import pytest
 
 import numpy  # noqa: F401, ICN001
 import numpy as np
+
+from SparseAutoschedulingBenchmark.BinsparseFormat import BinsparseFormat
+from SparseAutoschedulingBenchmark.Wrappers.NumpyWrapper import NumpyWrapper
+
 
 @pytest.fixture
 def test_numpy_wrapper():
@@ -32,7 +32,11 @@ def test_numpy_wrapper():
 
     expected_sparse = np.zeros(shape, dtype=np.float32)
     expected_sparse[row, col] = data
-    assert np.array_equal(expected_sparse, arr_sparse_converted), "Sparse array conversion failed"
+    assert np.array_equal(expected_sparse, arr_sparse_converted), (
+        "Sparse array conversion failed"
+    )
 
     bsf_sparse_converted = wrapper.to_benchmark(arr_sparse_converted)
-    assert bsf_sparse.data == bsf_sparse_converted.data, "Sparse array to_benchmark failed"
+    assert bsf_sparse.data == bsf_sparse_converted.data, (
+        "Sparse array to_benchmark failed"
+    )

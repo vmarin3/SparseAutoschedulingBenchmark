@@ -4,6 +4,7 @@ import pytest
 
 from numpy.random import default_rng
 
+
 @pytest.fixture(scope="session")
 def lazy_datadir() -> Path:
     return Path(__file__).parent / "reference"
