@@ -22,26 +22,30 @@ DATA_GENERATOR_DICT = {
 }
 
 
-def run_benchmark(framework, benchmark_function, benchmark_data_generator):
-    avg_duration = 0
-    for _ in range(5):
+def run_benchmark(framework, benchmark_function, benchmark_data_generator, iters):
+    execution_times = []
+    for _ in range(iters):
         data = benchmark_data_generator()
         start = time.perf_counter()
-        result = benchmark_function(framework, *data)
+        benchmark_function(framework, *data)
         end = time.perf_counter()
         duration = end - start
-        avg_duration += duration
-    avg_duration /= 5
-    print(f"Benchmark took {avg_duration} seconds")
-    return avg_duration, result
+        execution_times.append(duration)
+    print(
+        f"Benchmark took an average of {sum(execution_times) / len(execution_times)}\
+             seconds"
+    )
+    return execution_times
 
 
-def save_benchmark_result(
-    results_folder, duration, framework, benchmark, data_generator
+def save_benchmark_results(
+    results_folder, execution_times, framework, benchmark, data_generator
 ):
     filename = f"{results_folder}/{framework}_{benchmark}_{data_generator}.bin"
     with open(filename, "w") as f:
-        f.write(f"Duration: {duration}\n")
+        f.write("Framework,Benchmark,Data Generator,Iteration,ExecutionTime\n")
+        for i, execution_time in enumerate(execution_times):
+            f.write(f"{framework},{benchmark},{data_generator},{i},{execution_time}\n")
 
 
 # This function allows either command line arguments or direct function calls to
@@ -55,6 +59,7 @@ def main(
     benchmark_names=None,
     data_generators=None,
     data_generator_names=None,
+    iters=None,
     results_folder=None,
 ):
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
@@ -75,6 +80,12 @@ def main(
         default="all",
         nargs="*",
         help="Data generator(s) to use",
+    )
+    parser.add_argument(
+        "--iterations",
+        default=5,
+        type=int,
+        help="Number of iterations to run for each benchmark",
     )
     parser.add_argument(
         "--results-folder", default="results", help="Folder to save results"
@@ -118,6 +129,9 @@ def main(
     if results_folder is None:
         results_folder = args.results_folder
 
+    if iters is None:
+        iters = args.iterations
+
     for framework_name, framework in frameworks:
         for benchmark_name, benchmark in benchmarks:
             for data_generator_name, data_generator in data_generators:
@@ -130,12 +144,12 @@ def main(
                     f"Running benchmark {benchmark_name} with framework\
                           {framework_name} and data generator {data_generator_name}"
                 )
-                avg_duration, result = run_benchmark(
-                    framework, benchmark, data_generator
+                execution_times = run_benchmark(
+                    framework, benchmark, data_generator, iters
                 )
-                save_benchmark_result(
+                save_benchmark_results(
                     results_folder,
-                    avg_duration,
+                    execution_times,
                     framework_name,
                     benchmark_name,
                     data_generator_name,
