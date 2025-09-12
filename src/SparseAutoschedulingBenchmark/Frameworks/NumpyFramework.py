@@ -4,7 +4,7 @@ from ..BinsparseFormat import BinsparseFormat
 from .AbstractFramework import AbstractFramework
 
 
-class NumpyWrapper(AbstractFramework):
+class NumpyFramework(AbstractFramework):
     def __init__(self):
         pass
 
