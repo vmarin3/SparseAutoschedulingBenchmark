@@ -114,8 +114,8 @@ def main(
     if not user_submitted_dgs:
         if args.data_generator == ["all"]:
             data_generators = []
-            for benchmark_name, bench in benchmarks:
-                for dg in DATA_GENERATOR_DICT[bench]:
+            for benchmark_name, _bench in benchmarks:
+                for dg in DATA_GENERATOR_DICT[benchmark_name]:
                     data_generators.append(
                         (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
                     )
