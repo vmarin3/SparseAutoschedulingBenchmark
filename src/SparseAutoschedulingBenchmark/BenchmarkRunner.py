@@ -10,9 +10,9 @@ from .Benchmarks.MatMul import (
 )
 from .Frameworks.NumpyFramework import NumpyFramework
 
-wrappers = {"numpy": NumpyFramework()}
-benchmarks = {"matmul": benchmark_matmul}
-data_generators = {
+FRAMEWORK_DICT = {"numpy": NumpyFramework()}
+BENCHMARK_DICT = {"matmul": benchmark_matmul}
+DATA_GENERATOR_DICT = {
     "matmul": {
         "dense_small": dg_matmul_dense_small,
         "dense_large": dg_matmul_dense_large,
@@ -22,12 +22,12 @@ data_generators = {
 }
 
 
-def run_benchmark(xp, benchmark_function, benchmark_data_generator):
+def run_benchmark(framework, benchmark_function, benchmark_data_generator):
     avg_duration = 0
     for _ in range(5):
         data = benchmark_data_generator()
         start = time.perf_counter()
-        result = benchmark_function(xp, *data)
+        result = benchmark_function(framework, *data)
         end = time.perf_counter()
         duration = end - start
         avg_duration += duration
@@ -36,54 +36,107 @@ def run_benchmark(xp, benchmark_function, benchmark_data_generator):
     return avg_duration, result
 
 
-def save_benchmark_result(results_folder, duration, wrapper, benchmark, data_generator):
-    filename = f"{results_folder}/{wrapper}_{benchmark}_{data_generator}.bin"
+def save_benchmark_result(
+    results_folder, duration, framework, benchmark, data_generator
+):
+    filename = f"{results_folder}/{framework}_{benchmark}_{data_generator}.bin"
     with open(filename, "w") as f:
         f.write(f"Duration: {duration}\n")
 
 
+# This function allows either command line arguments or direct function calls to
+# run benchmarks. Note that if frameworks, benchmarks, or data_generators are
+# provided directly, the corresponding command line arguments are ignored. Further,
+# if a user benchmark is provided, data generators must also be provided directly.
 def main(
-    wrapper=None,
-    wrapper_name=None,
-    benchmark=None,
-    benchmark_name=None,
-    data_generator=None,
-    data_generator_name=None,
+    frameworks=None,
+    framework_names=None,
+    benchmarks=None,
+    benchmark_names=None,
+    data_generators=None,
+    data_generator_names=None,
     results_folder=None,
 ):
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
     parser.add_argument(
-        "--wrapper",
-        default="numpy",
-        choices=list(wrappers.keys()),
-        help="Execution wrapper to use",
+        "--framework",
+        default="all",
+        nargs="*",
+        help="Execution framework(s) to use",
     )
     parser.add_argument(
         "--benchmark",
-        default="matmul",
-        choices=list(benchmarks.keys()),
-        help="Benchmark to run",
+        default="all",
+        nargs="*",
+        help="Benchmark(s) to run",
     )
     parser.add_argument(
-        "--data-generator", default="default", help="Data generator to use"
+        "--data-generator",
+        default="all",
+        nargs="*",
+        help="Data generator(s) to use",
     )
     parser.add_argument(
         "--results-folder", default="results", help="Folder to save results"
     )
     args = parser.parse_args()
-    if wrapper is None:
-        wrapper = wrappers[args.wrapper]
-        wrapper_name = args.wrapper
-    if benchmark is None:
-        benchmark = benchmarks[args.benchmark]
-        benchmark_name = args.benchmark
-    if data_generator is None:
-        data_generator = data_generators[args.benchmark][args.data_generator]
-        data_generator_name = args.data_generator
+    if frameworks is None:
+        if args.framework == ["all"]:
+            frameworks = list(FRAMEWORK_DICT.items())
+        else:
+            frameworks = [(fw, FRAMEWORK_DICT[fw]) for fw in args.framework]
+    else:
+        frameworks = zip(frameworks, framework_names, strict=False)
+
+    if benchmarks is None:
+        if args.benchmark == ["all"]:
+            benchmarks = list(BENCHMARK_DICT.items())
+        else:
+            benchmarks = [
+                (benchmark_name, BENCHMARK_DICT[benchmark_name])
+                for benchmark_name in args.benchmark
+            ]
+
+    user_submitted_dgs = data_generator_names is not None
+    if not user_submitted_dgs:
+        if args.data_generator == ["all"]:
+            data_generators = []
+            for benchmark_name, bench in benchmarks:
+                for dg in DATA_GENERATOR_DICT[bench]:
+                    data_generators.append(
+                        (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
+                    )
+        else:
+            data_generators = []
+            for benchmark_name, _bench in benchmarks:
+                for dg in args.data_generator:
+                    if dg in DATA_GENERATOR_DICT[benchmark_name]:
+                        data_generators.append(
+                            (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
+                        )
+
     if results_folder is None:
         results_folder = args.results_folder
 
-    avg_duration, result = run_benchmark(wrapper, benchmark, data_generator)
-    save_benchmark_result(
-        results_folder, avg_duration, wrapper_name, benchmark_name, data_generator_name
-    )
+    for framework_name, framework in frameworks:
+        for benchmark_name, benchmark in benchmarks:
+            for data_generator_name, data_generator in data_generators:
+                if (
+                    data_generator_name not in DATA_GENERATOR_DICT[benchmark_name]
+                    and not user_submitted_dgs
+                ):
+                    continue
+                print(
+                    f"Running benchmark {benchmark_name} with framework\
+                          {framework_name} and data generator {data_generator_name}"
+                )
+                avg_duration, result = run_benchmark(
+                    framework, benchmark, data_generator
+                )
+                save_benchmark_result(
+                    results_folder,
+                    avg_duration,
+                    framework_name,
+                    benchmark_name,
+                    data_generator_name,
+                )
