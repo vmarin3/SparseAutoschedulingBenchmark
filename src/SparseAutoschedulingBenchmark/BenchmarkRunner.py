@@ -41,7 +41,7 @@ def run_benchmark(framework, benchmark_function, benchmark_data_generator, iters
 def save_benchmark_results(
     results_folder, execution_times, framework, benchmark, data_generator
 ):
-    filename = f"{results_folder}/{framework}_{benchmark}_{data_generator}.bin"
+    filename = f"{results_folder}/{framework}_{benchmark}_{data_generator}.csv"
     with open(filename, "w") as f:
         f.write("Framework,Benchmark,Data Generator,Iteration,ExecutionTime\n")
         for i, execution_time in enumerate(execution_times):
@@ -65,19 +65,19 @@ def main(
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
     parser.add_argument(
         "--framework",
-        default="all",
+        default=["all"],
         nargs="*",
         help="Execution framework(s) to use",
     )
     parser.add_argument(
         "--benchmark",
-        default="all",
+        default=["all"],
         nargs="*",
         help="Benchmark(s) to run",
     )
     parser.add_argument(
         "--data-generator",
-        default="all",
+        default=["all"],
         nargs="*",
         help="Data generator(s) to use",
     )
@@ -97,7 +97,7 @@ def main(
         else:
             frameworks = [(fw, FRAMEWORK_DICT[fw]) for fw in args.framework]
     else:
-        frameworks = zip(frameworks, framework_names, strict=False)
+        frameworks = zip(framework_names, frameworks, strict=False)
 
     if benchmarks is None:
         if args.benchmark == ["all"]:
@@ -107,8 +107,10 @@ def main(
                 (benchmark_name, BENCHMARK_DICT[benchmark_name])
                 for benchmark_name in args.benchmark
             ]
+    else:
+        benchmarks = zip(benchmark_names, benchmarks, strict=False)
 
-    user_submitted_dgs = data_generator_names is not None
+    user_submitted_dgs = data_generators is not None
     if not user_submitted_dgs:
         if args.data_generator == ["all"]:
             data_generators = []
@@ -125,6 +127,8 @@ def main(
                         data_generators.append(
                             (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
                         )
+    else:
+        data_generators = zip(data_generator_names, data_generators, strict=False)
 
     if results_folder is None:
         results_folder = args.results_folder
@@ -136,8 +140,8 @@ def main(
         for benchmark_name, benchmark in benchmarks:
             for data_generator_name, data_generator in data_generators:
                 if (
-                    data_generator_name not in DATA_GENERATOR_DICT[benchmark_name]
-                    and not user_submitted_dgs
+                    not user_submitted_dgs
+                    and data_generator_name not in DATA_GENERATOR_DICT[benchmark_name]
                 ):
                     continue
                 print(
