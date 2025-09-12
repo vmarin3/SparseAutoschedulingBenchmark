@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class AbstractWrapper(ABC):
-    @abstractmethod
-    def __init__(self):
-        pass
-
+class AbstractFramework(ABC):
     @abstractmethod
     def from_benchmark(self, array):
         pass

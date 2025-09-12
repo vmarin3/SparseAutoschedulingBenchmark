@@ -8,9 +8,9 @@ from .Benchmarks.MatMul import (
     dg_matmul_sparse_large,
     dg_matmul_sparse_small,
 )
-from .Wrappers.NumpyWrapper import NumpyWrapper
+from .Frameworks.NumpyFramework import NumpyFramework
 
-wrappers = {"numpy": NumpyWrapper()}
+wrappers = {"numpy": NumpyFramework()}
 benchmarks = {"matmul": benchmark_matmul}
 data_generators = {
     "matmul": {
@@ -65,7 +65,7 @@ def main(
         help="Benchmark to run",
     )
     parser.add_argument(
-        "--data-generator", default="sparse_small", help="Data generator to use"
+        "--data-generator", default="default", help="Data generator to use"
     )
     parser.add_argument(
         "--results-folder", default="results", help="Folder to save results"

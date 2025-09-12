@@ -1,10 +1,10 @@
 import numpy as np
 
 from ..BinsparseFormat import BinsparseFormat
-from .AbstractWrapper import AbstractWrapper
+from .AbstractFramework import AbstractFramework
 
 
-class NumpyWrapper(AbstractWrapper):
+class NumpyWrapper(AbstractFramework):
     def __init__(self):
         pass
 
