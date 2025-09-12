@@ -7,7 +7,7 @@ Sparse autoschedulers are relatively new. This means there’s a golden opportun
 SparseAutoschedulingBenchmark uses [poetry](https://python-poetry.org/) for packaging. To install for
 development, clone the repository and run:
 ```bash
-poetry install --extras test
+poetry install --with test
 ```
 to install the current project and dev dependencies.
 
