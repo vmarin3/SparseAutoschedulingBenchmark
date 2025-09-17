@@ -2,18 +2,18 @@
 Name: Matrix Multiplication
 Author: Kyle Deeds
 Email: kdeeds@cs.washington.edu
-Motivation: 
+Motivation (Importance of problem with citation): 
 "Sparse-Sparse matrix multiply is a fundamental and expensive computational
 kernel in numerous scientific computing applications and graph algorithms"
 J. Gao et al., “A Systematic Survey of General Sparse Matrix-matrix
 Multiplication,” ACM Comput. Surv., vol. 55, no. 12, p. 244:1-244:36, Mar. 2023,
 doi: 10.1145/3571157.
-Role of sparsity:
+Role of sparsity (How sparsity is used in the problem):
 The inputs to the matrix multiply are sparse.
-Implementation:
+Implementation (Where did the reference algorithm come from? With citation.):
 Hand-written, direct call to array api function
 https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html
-Data Generation:
+Data Generation (How is the data generated? Why is it realistic?):
 Sparse-sparse matrix multiplication is sensitive to sparsity patterns and their interaction.
 We use random sparsity patterns for now.
 Statement on the use of Generative AI:
