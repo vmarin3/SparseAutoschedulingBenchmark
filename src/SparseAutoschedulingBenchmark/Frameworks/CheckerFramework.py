@@ -35,6 +35,11 @@ class CheckerOperator:
 
 
 class CheckerFramework(AbstractFramework):
+    """
+    This framework uses numpy to perform operations, but checks that lazy and compute
+    are used correctly in a benchmark function.
+    """
+
     def __init__(self):
         pass
 

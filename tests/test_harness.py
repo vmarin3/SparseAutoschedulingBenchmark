@@ -40,8 +40,6 @@ def test_numpy_framework():
     bsf_sparse_converted = BinsparseFormat.to_coo(
         framework.to_benchmark(arr_sparse_converted)
     )
-    print("bsf_sparse.data:", bsf_sparse.data)
-    print("bsf_sparse_converted.data:", bsf_sparse_converted.data)
     assert bsf_sparse == bsf_sparse_converted, "Sparse array to_benchmark failed"
 
 
@@ -61,7 +59,7 @@ def test_checker_framework():
 
     try:
         bad_benchmark_no_compute(framework, *dg_matmul_dense_small())
-        raise AssertionError(
+        raise ValueError(
             "Expected error for converting lazy tensor to benchmark format"
         )
     except AssertionError:
@@ -76,6 +74,6 @@ def test_checker_framework():
 
     try:
         bad_benchmark_no_lazy(framework, *dg_matmul_dense_small())
-        raise AssertionError("Expected error for applying operator to eager tensors")
+        raise ValueError("Expected error for applying operator to eager tensors")
     except AssertionError:
         pass  # Expected
