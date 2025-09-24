@@ -1,5 +1,4 @@
 import os
-from collections import namedtuple
 
 import numpy as np
 
@@ -46,7 +45,7 @@ def test_main(tmp_path):
         frameworks=[NumpyTestFramework()],
         framework_names=["NumpyTestFramework"],
         results_folder=tmp_path,
-        args=[] # Empty list to avoid using sys.argv
+        args=[],  # Empty list to avoid using sys.argv
     )
     assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_dense_large.csv")
     assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_dense_small.csv")
