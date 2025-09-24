@@ -4,20 +4,24 @@ from ..BinsparseFormat import BinsparseFormat
 from .AbstractFramework import AbstractFramework
 
 
-class LazyCheckerTensor:
-    def __init__(self, array):
-        if isinstance(array, np.ndarray):
-            self.array = array
-        else:
-            self.array = array.array
+class CheckerTensor:
+    pass
 
 
-class EagerCheckerTensor:
+class LazyCheckerTensor(CheckerTensor):
     def __init__(self, array):
-        if isinstance(array, np.ndarray):
-            self.array = array
-        else:
+        if isinstance(array, CheckerTensor):
             self.array = array.array
+        else:
+            self.array = array
+
+
+class EagerCheckerTensor(CheckerTensor):
+    def __init__(self, array):
+        if isinstance(array, CheckerTensor):
+            self.array = array.array
+        else:
+            self.array = array
 
 
 class CheckerOperator:
