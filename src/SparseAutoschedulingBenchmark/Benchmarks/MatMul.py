@@ -22,7 +22,6 @@ was written by hand.
 """
 
 import numpy as np
-
 import scipy.sparse as sp
 
 from ..BinsparseFormat import BinsparseFormat
