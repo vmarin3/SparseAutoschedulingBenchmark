@@ -21,9 +21,7 @@ DATA_GENERATOR_DICT = {
         "sparse_small": dg_matmul_sparse_small,
         "sparse_large": dg_matmul_sparse_large,
     },
-    "jacobi": {
-        "sparse_small": dg_jacobi_sparse_small
-    },
+    "jacobi": {"sparse_small": dg_jacobi_sparse_small},
 }
 
 
@@ -118,18 +116,20 @@ def main(
     user_submitted_dgs = data_generators is not None
     if not user_submitted_dgs:
         if args.data_generator == ["all"]:
-            data_generators = []
+            data_generators = {}
             for benchmark_name, _bench in benchmarks:
+                data_generators[benchmark_name] = []
                 for dg in DATA_GENERATOR_DICT[benchmark_name]:
-                    data_generators.append(
+                    data_generators[benchmark_name].append(
                         (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
                     )
         else:
-            data_generators = []
+            data_generators = {}
             for benchmark_name, _bench in benchmarks:
+                data_generators[benchmark_name] = []
                 for dg in args.data_generator:
                     if dg in DATA_GENERATOR_DICT[benchmark_name]:
-                        data_generators.append(
+                        data_generators[benchmark_name].append(
                             (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
                         )
     else:
@@ -143,7 +143,7 @@ def main(
 
     for framework_name, framework in frameworks:
         for benchmark_name, benchmark in benchmarks:
-            for data_generator_name, data_generator in data_generators:
+            for data_generator_name, data_generator in data_generators[benchmark_name]:
                 if (
                     not user_submitted_dgs
                     and data_generator_name not in DATA_GENERATOR_DICT[benchmark_name]

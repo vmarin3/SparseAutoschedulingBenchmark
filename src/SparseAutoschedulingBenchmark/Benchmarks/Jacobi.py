@@ -31,26 +31,30 @@ AI was used to debug code. This statement was written by hand.
 
 
 def benchmark_jacobi(
-    xp, A_bench, b_bench, x_bench, rel_tol=1e-3, abs_tol=1e-12, max_iters=10_000
+    xp, A_bench, b_bench, x_bench, rel_tol=1e-8, abs_tol=1e-20, max_iters=10_000
 ):
     A_lazy = xp.lazy(xp.from_benchmark(A_bench))
     b_lazy = xp.lazy(xp.from_benchmark(b_bench))
     x_lazy = xp.lazy(xp.from_benchmark(x_bench))
 
-    tolerance = max(rel_tol * xp.compute(norm(xp, b_lazy)), abs_tol)
+    tolerance = max(xp.compute(xp.lazy(rel_tol) * norm(xp, b_lazy)), abs_tol)
     d_lazy = xp.diagonal(A_lazy)
     if xp.compute(xp.any(d_lazy == 0)):
         raise ValueError("Jacobi requires nonzero diagonal entries.")
 
     r_lazy = b_lazy - xp.matmul(A_lazy, x_lazy)
-    res = xp.compute(norm(xp, r_lazy))
+    res = norm(xp, r_lazy)
     it = 0
 
-    while res >= tolerance and it < max_iters:
+    while xp.compute(res) >= tolerance and it < max_iters:
         x_lazy = x_lazy + xp.divide(r_lazy, d_lazy)
         r_lazy = b_lazy - xp.matmul(A_lazy, x_lazy)
-        res = xp.compute(norm(xp, r_lazy))
+        res = norm(xp, r_lazy)
         it += 1
+    if it >= max_iters:
+        raise RuntimeError(
+            "Jacobi did not converge within the maximum number of iterations"
+        )
     x_solution = xp.compute(x_lazy)
     return xp.to_benchmark(x_solution)
 
@@ -60,10 +64,10 @@ def norm(xp, v):
 
 
 def dg_jacobi_sparse_small():
-    A = np.array([[8, 0, 3], [4, 9, 0], [0, 4, 8]], dtype=np.float64)
-    x = np.array([[1], [4], [9]], dtype=np.float64)
+    A = np.array([[8, 0, 3], [4, 9, 0], [0, 4, 8]])
+    x = np.array([1, 4, 9])
     b = np.matmul(A, x)
-    x = np.zeros((3, 1), dtype=np.float64)
+    x = np.zeros((3,))
     A_bin = BinsparseFormat.from_numpy(A)
     b_bin = BinsparseFormat.from_numpy(b)
     x_bin = BinsparseFormat.from_numpy(x)
