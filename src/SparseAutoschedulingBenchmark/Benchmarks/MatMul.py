@@ -2,7 +2,7 @@
 Name: Matrix Multiplication
 Author: Kyle Deeds
 Email: kdeeds@cs.washington.edu
-Motivation (Importance of problem with citation): 
+Motivation (Importance of problem with citation):
 "Sparse-Sparse matrix multiply is a fundamental and expensive computational
 kernel in numerous scientific computing applications and graph algorithms"
 J. Gao et al., “A Systematic Survey of General Sparse Matrix-matrix
@@ -14,11 +14,11 @@ Implementation (Where did the reference algorithm come from? With citation.):
 Hand-written, direct call to array api function
 https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html
 Data Generation (How is the data generated? Why is it realistic?):
-Sparse-sparse matrix multiplication is sensitive to sparsity patterns and their interaction.
-We use random sparsity patterns for now.
-Statement on the use of Generative AI:
-No generative AI was used to construct the benchmark function itself. Generative
-AI might have been used to construct tests. This statement was written by hand.
+Sparse-sparse matrix multiplication is sensitive to sparsity patterns and their
+interaction. We use random sparsity patterns for now.  Statement on the use of
+Generative AI: No generative AI was used to construct the benchmark function
+itself. Generative AI might have been used to construct tests. This statement
+was written by hand.
 """
 
 import numpy as np
@@ -27,7 +27,7 @@ import scipy.sparse as sp
 
 from ..BinsparseFormat import BinsparseFormat
 
-"""
+r"""
     benchmark_matmul(xp, A_bench, B_bench)
 
 Computes $C_ij = \sum_k A_ik * B_kj$.
@@ -41,6 +41,8 @@ Returns:
 -------
     The result of the matrix multiplication in binsparse format
 """
+
+
 def benchmark_matmul(xp, A_bench, B_bench):
     A_lazy = xp.lazy(xp.from_benchmark(A_bench))
     B_lazy = xp.lazy(xp.from_benchmark(B_bench))
