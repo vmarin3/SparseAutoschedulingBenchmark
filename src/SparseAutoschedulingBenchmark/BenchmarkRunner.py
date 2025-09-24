@@ -64,6 +64,7 @@ def main(
     data_generator_names=None,
     iters=None,
     results_folder=None,
+    args=None,
 ):
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
     parser.add_argument(
@@ -93,7 +94,7 @@ def main(
     parser.add_argument(
         "--results-folder", default="results", help="Folder to save results"
     )
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     if frameworks is None:
         if args.framework == ["all"]:
             frameworks = list(FRAMEWORK_DICT.items())
