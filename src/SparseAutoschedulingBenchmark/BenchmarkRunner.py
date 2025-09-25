@@ -16,12 +16,12 @@ FRAMEWORK_DICT = {"numpy": NumpyFramework(), "checker": CheckerFramework()}
 BENCHMARK_DICT = {"matmul": benchmark_matmul, "jacobi": benchmark_jacobi}
 DATA_GENERATOR_DICT = {
     "matmul": {
-        "dense_small": dg_matmul_dense_small,
-        "dense_large": dg_matmul_dense_large,
-        "sparse_small": dg_matmul_sparse_small,
-        "sparse_large": dg_matmul_sparse_large,
+        "matmul_dense_small": dg_matmul_dense_small,
+        "matmul_dense_large": dg_matmul_dense_large,
+        "matmul_sparse_small": dg_matmul_sparse_small,
+        "matmul_sparse_large": dg_matmul_sparse_large,
     },
-    "jacobi": {"sparse_small": dg_jacobi_sparse_small},
+    "jacobi": {"jacobi_sparse_small": dg_jacobi_sparse_small},
 }
 
 
@@ -66,6 +66,25 @@ def main(
     results_folder=None,
     args=None,
 ):
+    collected_frameworks = FRAMEWORK_DICT.copy()
+    if frameworks is not None:
+        for framework_name, framework in frameworks:
+            collected_frameworks[framework_name] = framework
+    frameworks = collected_frameworks
+
+    collected_benchmarks = BENCHMARK_DICT.copy()
+    if benchmarks is not None:
+        for benchmark_name, benchmark in benchmarks:
+            collected_benchmarks[benchmark_name] = benchmark
+    benchmarks = collected_benchmarks
+
+    collected_data_generators = {benchmark_name: generators.copy() for benchmark_name, generators in DATA_GENERATOR_DICT.copy().items()}
+    if data_generators is not None:
+        for benchmark_name, generators in data_generators.items():
+            for generator_name, generator in generators.items():
+                collected_data_generators[benchmark_name][generator_name] = generator
+    data_generators = collected_data_generators
+
     parser = argparse.ArgumentParser(description="Run sparse autoscheduling benchmark")
     parser.add_argument(
         "--framework",
@@ -95,46 +114,24 @@ def main(
         "--results-folder", default="results", help="Folder to save results"
     )
     args = parser.parse_args(args)
-    if frameworks is None:
+
+    if framework_names is None:
         if args.framework == ["all"]:
-            frameworks = list(FRAMEWORK_DICT.items())
+            framework_names = list(FRAMEWORK_DICT.items())
         else:
-            frameworks = [(fw, FRAMEWORK_DICT[fw]) for fw in args.framework]
-    else:
-        frameworks = zip(framework_names, frameworks, strict=False)
+            framework_names = args.framework
 
-    if benchmarks is None:
+    if benchmark_names is None:
         if args.benchmark == ["all"]:
-            benchmarks = list(BENCHMARK_DICT.items())
+            benchmark_names = list(BENCHMARK_DICT.items())
         else:
-            benchmarks = [
-                (benchmark_name, BENCHMARK_DICT[benchmark_name])
-                for benchmark_name in args.benchmark
-            ]
-    else:
-        benchmarks = zip(benchmark_names, benchmarks, strict=False)
+            benchmark_names = args.benchmark
 
-    user_submitted_dgs = data_generators is not None
-    if not user_submitted_dgs:
+    if data_generator_names is None:
         if args.data_generator == ["all"]:
-            data_generators = {}
-            for benchmark_name, _bench in benchmarks:
-                data_generators[benchmark_name] = []
-                for dg in DATA_GENERATOR_DICT[benchmark_name]:
-                    data_generators[benchmark_name].append(
-                        (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
-                    )
+            data_generator_names = [generator_name for generators in collected_data_generators.values() for generator_name in generators.keys()]
         else:
-            data_generators = {}
-            for benchmark_name, _bench in benchmarks:
-                data_generators[benchmark_name] = []
-                for dg in args.data_generator:
-                    if dg in DATA_GENERATOR_DICT[benchmark_name]:
-                        data_generators[benchmark_name].append(
-                            (dg, DATA_GENERATOR_DICT[benchmark_name][dg])
-                        )
-    else:
-        data_generators = zip(data_generator_names, data_generators, strict=False)
+            data_generator_names = args.data_generator
 
     if results_folder is None:
         results_folder = args.results_folder
@@ -142,13 +139,13 @@ def main(
     if iters is None:
         iters = args.iterations
 
-    for framework_name, framework in frameworks:
-        for benchmark_name, benchmark in benchmarks:
-            for data_generator_name, data_generator in data_generators[benchmark_name]:
-                if (
-                    not user_submitted_dgs
-                    and data_generator_name not in DATA_GENERATOR_DICT[benchmark_name]
-                ):
+    data_generator_names = set(data_generator_names)
+    for framework_name in framework_names:
+        framework = frameworks[framework_name]
+        for benchmark_name in benchmark_names:
+            benchmark = benchmarks[benchmark_name]
+            for data_generator_name in data_generators[benchmark_name]:
+                if data_generator_name not in data_generator_names:
                     continue
                 print(
                     f"Running benchmark {benchmark_name} with framework\
