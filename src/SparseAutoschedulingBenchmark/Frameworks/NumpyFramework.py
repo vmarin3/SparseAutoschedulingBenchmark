@@ -6,7 +6,7 @@ from .AbstractFramework import AbstractFramework
 
 class NumpyFramework(AbstractFramework):
     def __init__(self):
-        pass
+        super().__init__(np)
 
     def from_benchmark(self, array):
         if array.data["format"] == "dense":
@@ -32,6 +32,3 @@ class NumpyFramework(AbstractFramework):
 
     def compute(self, array):
         return array
-
-    def __getattr__(self, name):
-        return getattr(np, name)
