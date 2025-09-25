@@ -4,18 +4,16 @@ from ..BinsparseFormat import BinsparseFormat
 from .AbstractFramework import AbstractFramework
 
 
+def unwrap(x):
+    if isinstance(x, CheckerTensor):
+        return x.array
+    return x
+
+
 class CheckerTensor:
     def __init__(self, xp, array):
         self.xp = xp
-        if isinstance(array, CheckerTensor):
-            self.array = array.data
-        else:
-            self.array = array
-        self.array = array
-    
-    @property
-    def data(self):
-        return self.array
+        self.array = unwrap(array)
 
     def __add__(self, other):
         return self.xp.add(self, other)
@@ -226,7 +224,6 @@ class CheckerTensor:
 
     def __ne__(self, other):
         return self.xp.not_equal(self, other)
-    pass
 
 
 class LazyCheckerTensor(CheckerTensor):
@@ -241,21 +238,22 @@ class LazyCheckerTensor(CheckerTensor):
         )
 
 
-
 class EagerCheckerTensor(CheckerTensor):
     def __getitem__(self, key):
-        return self.xp.__getitem__(key)
+        return self.array.__getitem__(key)
 
     """
     Though we don't want to run computations on eager tensors, we probably want
     to allow in-place updates. This is sticky.
     """
+
     def __setitem__(self, key, value):
-        return self.xp.__setitem__(key, value)
+        return self.array.__setitem__(key, value)
 
 
 class CheckerOperator:
-    def __init__(self, operator):
+    def __init__(self, xp, operator):
+        self.xp = xp
         self.operator = operator
 
     def __call__(self, *args, **kwds):
@@ -264,8 +262,8 @@ class CheckerOperator:
                 raise AssertionError(
                     "Eager Tensors should always be made lazy before being operated on!"
                 )
-        arrays = [arg.array for arg in args]
-        return LazyCheckerTensor(self.operator(*arrays, **kwds))
+        arrays = [unwrap(arg) for arg in args]
+        return LazyCheckerTensor(self.xp, self.operator(*arrays, **kwds))
 
 
 class CheckerFramework(AbstractFramework):
@@ -274,14 +272,13 @@ class CheckerFramework(AbstractFramework):
     are used correctly in a benchmark function.
     """
 
-    def __init__(self, xp = np):
+    def __init__(self, xp=np):
         self.xp = xp
 
     def from_benchmark(self, array):
         if array.data["format"] == "dense":
             return EagerCheckerTensor(
-                self,
-                self.xp.array(array.data["values"]).reshape(array.data["shape"])
+                self, self.xp.array(array.data["values"]).reshape(array.data["shape"])
             )
         if array.data["format"] == "COO":
             indices = []
@@ -302,7 +299,7 @@ class CheckerFramework(AbstractFramework):
                 "Lazy Tensors should always be computed before being converted to"
                 " benchmark format!"
             )
-        return BinsparseFormat.from_numpy(array.data)
+        return BinsparseFormat.from_numpy(unwrap(array))
 
     def lazy(self, array: CheckerTensor):
         return LazyCheckerTensor(self, array)
@@ -311,4 +308,4 @@ class CheckerFramework(AbstractFramework):
         return EagerCheckerTensor(self, array)
 
     def __getattr__(self, name):
-        return CheckerOperator(getattr(self.xp, name))
+        return CheckerOperator(self, getattr(self.xp, name))

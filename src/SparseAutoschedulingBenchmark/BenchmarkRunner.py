@@ -78,7 +78,10 @@ def main(
             collected_benchmarks[benchmark_name] = benchmark
     benchmarks = collected_benchmarks
 
-    collected_data_generators = {benchmark_name: generators.copy() for benchmark_name, generators in DATA_GENERATOR_DICT.copy().items()}
+    collected_data_generators = {
+        benchmark_name: generators.copy()
+        for benchmark_name, generators in DATA_GENERATOR_DICT.copy().items()
+    }
     if data_generators is not None:
         for benchmark_name, generators in data_generators.items():
             for generator_name, generator in generators.items():
@@ -129,7 +132,11 @@ def main(
 
     if data_generator_names is None:
         if args.data_generator == ["all"]:
-            data_generator_names = [generator_name for generators in collected_data_generators.values() for generator_name in generators.keys()]
+            data_generator_names = [
+                generator_name
+                for generators in collected_data_generators.values()
+                for generator_name in generators
+            ]
         else:
             data_generator_names = args.data_generator
 
@@ -144,7 +151,9 @@ def main(
         framework = frameworks[framework_name]
         for benchmark_name in benchmark_names:
             benchmark = benchmarks[benchmark_name]
-            for data_generator_name, data_generator in data_generators[benchmark_name].items():
+            for data_generator_name, data_generator in data_generators[
+                benchmark_name
+            ].items():
                 if data_generator_name not in data_generator_names:
                     continue
                 print(

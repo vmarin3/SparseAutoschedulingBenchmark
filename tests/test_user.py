@@ -39,7 +39,9 @@ class NumpyTestFramework(AbstractFramework):
     def __getattr__(self, name):
         return getattr(np, name)
 
+
 frameworks = {"NumpyTestFramework": NumpyTestFramework()}
+
 
 def test_main(tmp_path):
     autobench.main(
