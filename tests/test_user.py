@@ -50,7 +50,7 @@ def test_main(tmp_path):
         results_folder=tmp_path,
         args=[],  # Empty list to avoid using sys.argv
     )
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_dense_large.csv")
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_dense_small.csv")
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_sparse_large.csv")
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_sparse_small.csv")
+    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_dense_large.csv")
+    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_dense_small.csv")
+    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_sparse_large.csv")
+    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_sparse_small.csv")
