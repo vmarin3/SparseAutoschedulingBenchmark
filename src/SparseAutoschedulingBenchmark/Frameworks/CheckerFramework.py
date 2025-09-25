@@ -225,6 +225,11 @@ class CheckerTensor:
     def __ne__(self, other):
         return self.xp.not_equal(self, other)
 
+    def __getattr__(self, name):
+        return getattr(self.array, name)
+
+
+
 
 class LazyCheckerTensor(CheckerTensor):
     def __getitem__(self, key):
