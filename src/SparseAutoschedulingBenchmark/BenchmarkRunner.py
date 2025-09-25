@@ -68,13 +68,13 @@ def main(
 ):
     collected_frameworks = FRAMEWORK_DICT.copy()
     if frameworks is not None:
-        for framework_name, framework in frameworks:
+        for framework_name, framework in frameworks.items():
             collected_frameworks[framework_name] = framework
     frameworks = collected_frameworks
 
     collected_benchmarks = BENCHMARK_DICT.copy()
     if benchmarks is not None:
-        for benchmark_name, benchmark in benchmarks:
+        for benchmark_name, benchmark in benchmarks.items():
             collected_benchmarks[benchmark_name] = benchmark
     benchmarks = collected_benchmarks
 
@@ -117,13 +117,13 @@ def main(
 
     if framework_names is None:
         if args.framework == ["all"]:
-            framework_names = list(FRAMEWORK_DICT.items())
+            framework_names = list(FRAMEWORK_DICT.keys())
         else:
             framework_names = args.framework
 
     if benchmark_names is None:
         if args.benchmark == ["all"]:
-            benchmark_names = list(BENCHMARK_DICT.items())
+            benchmark_names = list(BENCHMARK_DICT.keys())
         else:
             benchmark_names = args.benchmark
 
@@ -144,7 +144,7 @@ def main(
         framework = frameworks[framework_name]
         for benchmark_name in benchmark_names:
             benchmark = benchmarks[benchmark_name]
-            for data_generator_name in data_generators[benchmark_name]:
+            for data_generator_name, data_generator in data_generators[benchmark_name].items():
                 if data_generator_name not in data_generator_names:
                     continue
                 print(

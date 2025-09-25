@@ -39,10 +39,11 @@ class NumpyTestFramework(AbstractFramework):
     def __getattr__(self, name):
         return getattr(np, name)
 
+frameworks = {"NumpyTestFramework": NumpyTestFramework()}
 
 def test_main(tmp_path):
     autobench.main(
-        frameworks=[NumpyTestFramework()],
+        frameworks=frameworks,
         framework_names=["NumpyTestFramework"],
         results_folder=tmp_path,
         args=[],  # Empty list to avoid using sys.argv
