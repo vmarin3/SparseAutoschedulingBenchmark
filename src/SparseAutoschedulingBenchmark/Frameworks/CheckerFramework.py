@@ -229,8 +229,6 @@ class CheckerTensor:
         return getattr(self.array, name)
 
 
-
-
 class LazyCheckerTensor(CheckerTensor):
     def __getitem__(self, key):
         raise AssertionError(

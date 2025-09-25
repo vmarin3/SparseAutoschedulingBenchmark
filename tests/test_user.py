@@ -52,5 +52,9 @@ def test_main(tmp_path):
     )
     assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_dense_large.csv")
     assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_dense_small.csv")
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_sparse_large.csv")
-    assert os.path.exists(tmp_path / "NumpyTestFramework_matmul_matmul_sparse_small.csv")
+    assert os.path.exists(
+        tmp_path / "NumpyTestFramework_matmul_matmul_sparse_large.csv"
+    )
+    assert os.path.exists(
+        tmp_path / "NumpyTestFramework_matmul_matmul_sparse_small.csv"
+    )
