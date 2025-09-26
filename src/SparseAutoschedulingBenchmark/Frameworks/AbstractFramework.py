@@ -2,9 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class AbstractFramework(ABC):
-    def __init__(self, xp):
-        self.xp = xp
-
     # Benchmark Format -> Eager Tensor
     @abstractmethod
     def from_benchmark(self, array):
