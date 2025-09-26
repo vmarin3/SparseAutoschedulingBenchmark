@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
 from lark import Lark, Tree
-from typing import Union
-import numpy as np
+
 
 class EinsumExpr(ABC):
     @abstractmethod
     def get_loops(self) -> set[str]:
         pass
-    
+
     @abstractmethod
     def run(self, xp, loops, kwargs):
         pass
@@ -130,15 +130,17 @@ reduction_ops = {
     "std": "std",
     "var": "var",
     "count_nonzero": "count_nonzero",
-    #"&": "bitwise_and",
-    #"|": "bitwise_or",
-    #"^": "bitwise_xor",
+    # "&": "bitwise_and",
+    # "|": "bitwise_or",
+    # "^": "bitwise_xor",
 }
+
 
 @dataclass
 class Access(EinsumExpr):
     tns: str
     idxs: list[str]
+
     def get_loops(self) -> set[str]:
         return set(self.idxs)
 
@@ -147,7 +149,10 @@ class Access(EinsumExpr):
         perm = sorted(range(len(self.idxs)), key=lambda i: loops.index(self.idxs[i]))
         tns = kwargs[self.tns]
         tns = xp.transpose(tns, perm)
-        return xp.expand_dims(tns, [i for i in range(len(loops)) if loops[i] not in self.idxs])
+        return xp.expand_dims(
+            tns, [i for i in range(len(loops)) if loops[i] not in self.idxs]
+        )
+
 
 @dataclass
 class Call(EinsumExpr):
@@ -156,7 +161,7 @@ class Call(EinsumExpr):
 
     def get_loops(self) -> set[str]:
         return set().union(*[arg.get_loops() for arg in self.args])
-    
+
     def run(self, xp, loops, kwargs):
         if len(self.args) == 1:
             func = getattr(xp, unary_ops[self.func])
@@ -164,7 +169,7 @@ class Call(EinsumExpr):
             func = getattr(xp, nary_ops[self.func])
         vals = [arg.run(xp, loops, kwargs) for arg in self.args]
         return func(*vals)
-    
+
 
 @dataclass
 class Einsum:
@@ -197,74 +202,72 @@ l = Lark("""
     expr: call | access
     access: TNS "[" (IDX ",")* IDX? "]"
     call: call_prefix | call_unary | call_binary
-    call_prefix: (WORD "(" (IDX ",")* IDX?  ")") 
+    call_prefix: (WORD "(" (IDX ",")* IDX?  ")")
     call_unary: UNARY "(" expr ")"
     call_binary: expr BINARY expr
     UNARY: "+" | "-" | "not" | "~"
     BINARY: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>" | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!=" | "max" | "min"
     IDX: WORD
     TNS: WORD
-    %import common.WORD 
+    %import common.WORD
     %ignore " "           // Disregard spaces in text
 """)
 
+
 def _parse_einsum_expr(t: Tree) -> EinsumExpr:
-    if t.data == "start":
+    if t.data == "start" or t.data == "expr":
         return _parse_einsum_expr(t.children[0])  # type: ignore
-    elif t.data == "expr":
-        return _parse_einsum_expr(t.children[0])  # type: ignore
-    elif t.data == "access":
+    if t.data == "access":
         tns = t.children[0].value  # type: ignore
         idxs = [c.value for c in t.children[1:]]  # type: ignore
         return Access(tns, idxs)
-    elif t.data == "call":
+    if t.data == "call":
         if t.children[0].data == "call_prefix":
             func = t.children[0].children[0].value  # type: ignore
             args = [_parse_einsum_expr(c) for c in t.children[0].children[1:]]  # type: ignore
             return Call(func, args)
-        elif t.children[0].data == "call_unary":
+        if t.children[0].data == "call_unary":
             func = t.children[0].children[0].value  # type: ignore
             arg = _parse_einsum_expr(t.children[0].children[1])  # type: ignore
             return Call(func, [arg])
-        elif t.children[0].data == "call_binary":
+        if t.children[0].data == "call_binary":
             left = _parse_einsum_expr(t.children[0].children[0])  # type: ignore
             func = t.children[0].children[1].value  # type: ignore
             right = _parse_einsum_expr(t.children[0].children[2])  # type: ignore
             return Call(func, [left, right])
-        else:
-            raise ValueError(f"Unknown call data: {t.children[0].data}")
-    else:
-        raise ValueError(f"Unknown tree data for expression: {t.data}")
+        raise ValueError(f"Unknown call data: {t.children[0].data}")
+    raise ValueError(f"Unknown tree data for expression: {t.data}")
+
 
 def parse_einsum(expr: str) -> Einsum:
     tree = l.parse(expr)
     print(f"Parsed tree: {tree.pretty()}")
-    
+
     t = tree
     if t.data == "start":
         t = t.children[0]  # type: ignore
-    
+
     if t.data == "increment":
         access_node = t.children[0]
         op = t.children[1].value  # type: ignore
         expr_node = t.children[2]
-        
+
         tns = access_node.children[0].value  # type: ignore
         idxs = [c.value for c in access_node.children[1:]]  # type: ignore
         input_expr = _parse_einsum_expr(expr_node)  # type: ignore
-        
+
         return Einsum(input_expr, op, tns, idxs)  # type: ignore
-    elif t.data == "assign":
+    if t.data == "assign":
         access_node = t.children[0]
         expr_node = t.children[1]
-        
+
         tns = access_node.children[0].value  # type: ignore
         idxs = [c.value for c in access_node.children[1:]]  # type: ignore
         input_expr = _parse_einsum_expr(expr_node)  # type: ignore
-        
+
         return Einsum(input_expr, None, tns, idxs)
-    else:
-        raise ValueError(f"Expected top-level assignment or increment, got {t.data}")
+    raise ValueError(f"Expected top-level assignment or increment, got {t.data}")
+
 
 def einsum(xp, prgm, **kwargs):
     prgm = parse_einsum(prgm)

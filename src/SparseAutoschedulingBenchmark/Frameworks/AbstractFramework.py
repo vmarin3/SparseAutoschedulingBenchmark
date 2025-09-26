@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from .einsum import einsum
 
 
 class AbstractFramework(ABC):
