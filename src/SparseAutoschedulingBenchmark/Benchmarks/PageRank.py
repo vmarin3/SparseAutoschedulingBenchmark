@@ -5,12 +5,6 @@ Author: Aarav Joglekar
 
 Email: ajoglekar32@gatech.edu
 
-Motivation: 
-
-Role of Sparsity:
-
-Implementation:
-
 What does this code do:
 First the code calls from_binsparse on the wrapper to translate from binsparse COO. 
 Once that is done the out-degree of the adjacency is found by summing columns, giving 
@@ -26,7 +20,6 @@ Citation for reference implementation:
 
 Citation corroborating the choice of data & importance of problem:
 Brin, S., & Page, L. (1998). "The anatomy of a large-scale hypertextual Web search engine." *Computer Networks and ISDN Systems*, 30(1-7), 107-117.
-Citation for choice of data and problem importance:
 
 Statement on the use of Generative AI:
 AI was not used in order to write this benchmark function. 
@@ -40,9 +33,9 @@ import numpy as np
 from SparseAutoschedulingBenchmark.BinsparseFormat import BinsparseFormat
 
 def pagerank(xp, A_binsparse, alpha = 0.85, max_iter = 100, tol = 1e-6):
-    A = xp.from_binsparse(A_binsparse)
+    A = xp.from_benchmark(A_binsparse)
     out_degree = xp.sum(A, axis = 0)
-    M = xp.array(A)
+    M = xp.array(A, dtype = float)
     N = A.shape[0]
     for j in range(N):
         if out_degree[j] != 0:
@@ -56,5 +49,5 @@ def pagerank(xp, A_binsparse, alpha = 0.85, max_iter = 100, tol = 1e-6):
         if xp.linalg.norm(x_new - x, ord=1) < tol:
             break
         x = x_new
-    return xp.to_binsparse(x)    
+    return xp.to_benchmark(x)
 
