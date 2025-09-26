@@ -86,9 +86,6 @@ unary_ops = {
     "bitwise_invert": "bitwise_invert",
     "not": "logical_not",
     "logical_not": "logical_not",
-    "~": "bitwise_invert",
-    "invert": "bitwise_invert",
-    "bitwise_invert": "bitwise_invert",
     "abs": "absolute",
     "absolute": "absolute",
     "sqrt": "sqrt",
@@ -97,7 +94,6 @@ unary_ops = {
     "log1p": "log1p",
     "log10": "log10",
     "log2": "log2",
-    "neg": "negative",
     "sin": "sin",
     "cos": "cos",
     "tan": "tan",
@@ -191,11 +187,11 @@ class Einsum:
         else:
             assert set(self.idxs) == set(loops)
             val = arg
-        axis = [self.idxs.index(l) for l in loops if l in self.idxs]
+        axis = [self.idxs.index(loop) for loop in loops if loop in self.idxs]
         return xp.transpose(val, axis)
 
 
-l = Lark("""
+lark_parser = Lark("""
     start: increment | assign
     increment: access BINARY "=" expr
     assign: access "=" expr
@@ -206,7 +202,9 @@ l = Lark("""
     call_unary: UNARY "(" expr ")"
     call_binary: expr BINARY expr
     UNARY: "+" | "-" | "not" | "~"
-    BINARY: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>" | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!=" | "max" | "min"
+    BINARY: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>"
+          | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!="
+          | "max" | "min"
     IDX: WORD
     TNS: WORD
     %import common.WORD
@@ -216,54 +214,54 @@ l = Lark("""
 
 def _parse_einsum_expr(t: Tree) -> EinsumExpr:
     if t.data == "start" or t.data == "expr":
-        return _parse_einsum_expr(t.children[0])  # type: ignore
+        return _parse_einsum_expr(t.children[0])  # type: ignore[arg-type]
     if t.data == "access":
-        tns = t.children[0].value  # type: ignore
-        idxs = [c.value for c in t.children[1:]]  # type: ignore
+        tns = t.children[0].value  # type: ignore[union-attr]
+        idxs = [c.value for c in t.children[1:]]  # type: ignore[union-attr]
         return Access(tns, idxs)
     if t.data == "call":
         if t.children[0].data == "call_prefix":
-            func = t.children[0].children[0].value  # type: ignore
-            args = [_parse_einsum_expr(c) for c in t.children[0].children[1:]]  # type: ignore
+            func = t.children[0].children[0].value  # type: ignore[union-attr]
+            args = [_parse_einsum_expr(c) for c in t.children[0].children[1:]]  # type: ignore[arg-type]
             return Call(func, args)
         if t.children[0].data == "call_unary":
-            func = t.children[0].children[0].value  # type: ignore
-            arg = _parse_einsum_expr(t.children[0].children[1])  # type: ignore
+            func = t.children[0].children[0].value  # type: ignore[union-attr]
+            arg = _parse_einsum_expr(t.children[0].children[1])  # type: ignore[arg-type]
             return Call(func, [arg])
         if t.children[0].data == "call_binary":
-            left = _parse_einsum_expr(t.children[0].children[0])  # type: ignore
-            func = t.children[0].children[1].value  # type: ignore
-            right = _parse_einsum_expr(t.children[0].children[2])  # type: ignore
+            left = _parse_einsum_expr(t.children[0].children[0])  # type: ignore[arg-type]
+            func = t.children[0].children[1].value  # type: ignore[union-attr]
+            right = _parse_einsum_expr(t.children[0].children[2])  # type: ignore[arg-type]
             return Call(func, [left, right])
         raise ValueError(f"Unknown call data: {t.children[0].data}")
     raise ValueError(f"Unknown tree data for expression: {t.data}")
 
 
 def parse_einsum(expr: str) -> Einsum:
-    tree = l.parse(expr)
+    tree = lark_parser.parse(expr)
     print(f"Parsed tree: {tree.pretty()}")
 
     t = tree
     if t.data == "start":
-        t = t.children[0]  # type: ignore
+        t = t.children[0]  # type: ignore[assignment]
 
     if t.data == "increment":
         access_node = t.children[0]
-        op = t.children[1].value  # type: ignore
+        op = t.children[1].value  # type: ignore[union-attr]
         expr_node = t.children[2]
 
-        tns = access_node.children[0].value  # type: ignore
-        idxs = [c.value for c in access_node.children[1:]]  # type: ignore
-        input_expr = _parse_einsum_expr(expr_node)  # type: ignore
+        tns = access_node.children[0].value  # type: ignore[union-attr]
+        idxs = [c.value for c in access_node.children[1:]]  # type: ignore[union-attr]
+        input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
 
-        return Einsum(input_expr, op, tns, idxs)  # type: ignore
+        return Einsum(input_expr, op, tns, idxs)  # type: ignore[arg-type]
     if t.data == "assign":
         access_node = t.children[0]
         expr_node = t.children[1]
 
-        tns = access_node.children[0].value  # type: ignore
-        idxs = [c.value for c in access_node.children[1:]]  # type: ignore
-        input_expr = _parse_einsum_expr(expr_node)  # type: ignore
+        tns = access_node.children[0].value  # type: ignore[union-attr]
+        idxs = [c.value for c in access_node.children[1:]]  # type: ignore[union-attr]
+        input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
 
         return Einsum(input_expr, None, tns, idxs)
     raise ValueError(f"Expected top-level assignment or increment, got {t.data}")
