@@ -37,7 +37,7 @@ def benchmark_jacobi(
     b_lazy = xp.lazy(xp.from_benchmark(b_bench))
     x_lazy = xp.lazy(xp.from_benchmark(x_bench))
 
-    tolerance = max(xp.compute(xp.lazy(rel_tol) * norm(xp, b_lazy)), abs_tol)
+    tolerance = max(xp.compute(xp.lazy(rel_tol) * norm(xp, b_lazy))[()], abs_tol)
     d_lazy = xp.diagonal(A_lazy)
     if xp.compute(xp.any(d_lazy == 0)):
         raise ValueError("Jacobi requires nonzero diagonal entries.")
@@ -46,7 +46,7 @@ def benchmark_jacobi(
     res = norm(xp, r_lazy)
     it = 0
 
-    while xp.compute(res) >= tolerance and it < max_iters:
+    while xp.compute(res)[()] >= tolerance and it < max_iters:
         x_lazy = x_lazy + xp.divide(r_lazy, d_lazy)
         r_lazy = b_lazy - xp.matmul(A_lazy, x_lazy)
         res = norm(xp, r_lazy)
