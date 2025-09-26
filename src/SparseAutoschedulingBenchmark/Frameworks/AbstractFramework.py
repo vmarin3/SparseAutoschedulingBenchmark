@@ -26,9 +26,10 @@ class AbstractFramework(ABC):
     def compute(self, array):
         pass
 
+    @abstractmethod
     def einsum(self, prgm, **kwargs):
-        return einsum(self.xp, prgm, **kwargs)
+        pass
 
     @abstractmethod
     def __getattr__(self, name):
-        self.xp = xp
+        pass

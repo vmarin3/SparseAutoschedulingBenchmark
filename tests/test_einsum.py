@@ -1,5 +1,5 @@
 import pytest
-from SparseAutoschedulingBenchmark import NumpyFramework
+from SparseAutoschedulingBenchmark.Frameworks import NumpyFramework
 import numpy as np
 
 
