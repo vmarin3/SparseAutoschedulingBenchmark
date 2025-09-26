@@ -213,58 +213,43 @@ lark_parser = Lark("""
 
 
 def _parse_einsum_expr(t: Tree) -> EinsumExpr:
-    if t.data == "start" or t.data == "expr":
-        return _parse_einsum_expr(t.children[0])  # type: ignore[arg-type]
-    if t.data == "access":
-        tns = t.children[0].value  # type: ignore[union-attr]
-        idxs = [c.value for c in t.children[1:]]  # type: ignore[union-attr]
-        return Access(tns, idxs)
-    if t.data == "call":
-        if t.children[0].data == "call_prefix":
-            func = t.children[0].children[0].value  # type: ignore[union-attr]
-            args = [_parse_einsum_expr(c) for c in t.children[0].children[1:]]  # type: ignore[arg-type]
-            return Call(func, args)
-        if t.children[0].data == "call_unary":
-            func = t.children[0].children[0].value  # type: ignore[union-attr]
-            arg = _parse_einsum_expr(t.children[0].children[1])  # type: ignore[arg-type]
-            return Call(func, [arg])
-        if t.children[0].data == "call_binary":
-            left = _parse_einsum_expr(t.children[0].children[0])  # type: ignore[arg-type]
-            func = t.children[0].children[1].value  # type: ignore[union-attr]
-            right = _parse_einsum_expr(t.children[0].children[2])  # type: ignore[arg-type]
-            return Call(func, [left, right])
-        raise ValueError(f"Unknown call data: {t.children[0].data}")
-    raise ValueError(f"Unknown tree data for expression: {t.data}")
+    match t:
+        case Tree("start" | "expr", [child]):
+            return _parse_einsum_expr(child)
+        case Tree("access", [tns, *idxs]):
+            return Access(tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
+        case Tree("call", [Tree("call_prefix", [func, *args])]):
+            return Call(func.value, [_parse_einsum_expr(arg) for arg in args])  # type: ignore[union-attr]
+        case Tree("call", [Tree("call_unary", [func, arg])]):
+            return Call(func.value, [_parse_einsum_expr(arg)])  # type: ignore[union-attr]
+        case Tree("call", [Tree("call_binary", [left, func, right])]):
+            return Call(
+                func.value,  # type: ignore[union-attr]
+                [_parse_einsum_expr(left), _parse_einsum_expr(right)],
+            )
+        case _:
+            raise ValueError(f"Unknown tree structure: {t}")
 
 
 def parse_einsum(expr: str) -> Einsum:
     tree = lark_parser.parse(expr)
     print(f"Parsed tree: {tree.pretty()}")
 
-    t = tree
-    if t.data == "start":
-        t = t.children[0]  # type: ignore[assignment]
+    match tree:
+        case Tree(
+            "start", [Tree("increment", [Tree("access", [tns, *idxs]), op, expr_node])]
+        ):
+            input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
+            return Einsum(input_expr, op.value, tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
 
-    if t.data == "increment":
-        access_node = t.children[0]
-        op = t.children[1].value  # type: ignore[union-attr]
-        expr_node = t.children[2]
+        case Tree("start", [Tree("assign", [Tree("access", [tns, *idxs]), expr_node])]):
+            input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
+            return Einsum(input_expr, None, tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
 
-        tns = access_node.children[0].value  # type: ignore[union-attr]
-        idxs = [c.value for c in access_node.children[1:]]  # type: ignore[union-attr]
-        input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
-
-        return Einsum(input_expr, op, tns, idxs)  # type: ignore[arg-type]
-    if t.data == "assign":
-        access_node = t.children[0]
-        expr_node = t.children[1]
-
-        tns = access_node.children[0].value  # type: ignore[union-attr]
-        idxs = [c.value for c in access_node.children[1:]]  # type: ignore[union-attr]
-        input_expr = _parse_einsum_expr(expr_node)  # type: ignore[arg-type]
-
-        return Einsum(input_expr, None, tns, idxs)
-    raise ValueError(f"Expected top-level assignment or increment, got {t.data}")
+        case _:
+            raise ValueError(
+                f"Expected top-level assignment or increment, got {tree.data}"
+            )
 
 
 def einsum(xp, prgm, **kwargs):
