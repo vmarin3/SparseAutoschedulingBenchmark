@@ -283,7 +283,7 @@ class CheckerFramework(AbstractFramework):
     """
 
     def __init__(self, xp=np):
-        super().__init__(xp)
+        self.xp = xp
 
     def from_benchmark(self, array):
         if array.data["format"] == "dense":
