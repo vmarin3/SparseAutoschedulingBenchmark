@@ -142,7 +142,7 @@ class Access(EinsumExpr):
 
     def run(self, xp, loops, kwargs):
         assert len(self.idxs) == len(set(self.idxs))
-        perm = sorted(range(len(self.idxs)), key=lambda i: loops.index(self.idxs[i]))
+        perm = [self.idxs.index(idx) for idx in loops if idx in self.idxs]
         tns = kwargs[self.tns]
         tns = xp.transpose(tns, perm)
         return xp.expand_dims(
@@ -187,7 +187,8 @@ class Einsum:
         else:
             assert set(self.idxs) == set(loops)
             val = arg
-        axis = [self.idxs.index(loop) for loop in loops if loop in self.idxs]
+        dropped = [idx for idx in loops if idx in self.idxs]
+        axis = [dropped.index(idx) for idx in self.idxs]
         return xp.transpose(val, axis)
 
 

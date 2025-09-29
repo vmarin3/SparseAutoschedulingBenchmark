@@ -98,3 +98,33 @@ def test_minimum_reduction(xp, rng):
     C_ref = np.min(A, axis=1)
 
     assert np.allclose(C, C_ref)
+
+@pytest.mark.parametrize("axis",
+    [
+        (0, 2, 1),
+        (3, 0, 1),
+        (1, 0, 3, 2),
+        (1, 0, 3, 2)
+    ]
+)
+@pytest.mark.parametrize("idxs",
+    [
+        ("i", "j", "k", "l"),
+        ("l", "j", "k", "i"),
+        ("l", "k", "j", "i"),
+    ]
+)
+def test_swizzle_in(xp, rng, axis, idxs):
+    """Test transpositions with einsum"""
+    A = rng.random((4, 4, 4, 4))
+
+    jdxs = [idxs[p] for p in axis]
+    xp_idxs = ", ".join(idxs)
+    np_idxs = "".join(idxs)
+    xp_jdxs = ", ".join(jdxs)
+    np_jdxs = "".join(jdxs)
+
+    C = xp.einsum(f"C[{xp_jdxs}] += A[{xp_idxs}]", A=A)
+    C_ref = np.einsum(f"{np_idxs}->{np_jdxs}", A)
+
+    assert np.allclose(C, C_ref)
