@@ -151,6 +151,19 @@ class Access(EinsumExpr):
 
 
 @dataclass
+class Number(EinsumExpr):
+    value: int | float
+
+    def get_loops(self) -> set[str]:
+        return set()
+
+    def run(self, xp, loops, kwargs):
+        # Create a scalar array with the same shape as needed
+        shape = [1] * len(loops)
+        return xp.full(shape, self.value)
+
+
+@dataclass
 class Call(EinsumExpr):
     func: str
     args: list[EinsumExpr]
@@ -194,40 +207,101 @@ class Einsum:
 
 lark_parser = Lark("""
     start: increment | assign
-    increment: access BINARY "=" expr
+    increment: access (OP | WORD) "=" expr
     assign: access "=" expr
-    expr: call | access
-    access: TNS "[" (IDX ",")* IDX? "]"
-    call: call_prefix | call_unary | call_binary
-    call_prefix: (WORD "(" (IDX ",")* IDX?  ")")
-    call_unary: UNARY "(" expr ")"
-    call_binary: expr BINARY expr
-    UNARY: "+" | "-" | "not" | "~"
-    BINARY: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>"
+
+    // Python operator precedence (lowest to highest)
+    expr: or_expr
+    or_expr: and_expr (OR and_expr)*
+    and_expr: not_expr (AND not_expr)*
+    not_expr: NOT not_expr | comparison_expr
+    comparison_expr: bitwise_or_expr ((EQ | NE | LT | LE | GT | GE) bitwise_or_expr)*
+    bitwise_or_expr: bitwise_xor_expr (PIPE bitwise_xor_expr)*
+    bitwise_xor_expr: bitwise_and_expr (CARET bitwise_and_expr)*
+    bitwise_and_expr: shift_expr (AMPERSAND shift_expr)*
+    shift_expr: add_expr ((LSHIFT | RSHIFT) add_expr)*
+    add_expr: mul_expr ((PLUS | MINUS) mul_expr)*
+    mul_expr: unary_expr ((MUL | DIV | FLOORDIV | MOD) unary_expr)*
+    unary_expr: (PLUS | MINUS | TILDE) unary_expr | power_expr
+    power_expr: primary (POW unary_expr)?
+    primary: call_func | access | number | "(" expr ")"
+
+    OR: "or"
+    AND: "and"
+    NOT: "not"
+    EQ: "=="
+    NE: "!="
+    LT: "<"
+    LE: "<="
+    GT: ">"
+    GE: ">="
+    PIPE: "|"
+    CARET: "^"
+    AMPERSAND: "&"
+    LSHIFT: "<<"
+    RSHIFT: ">>"
+    PLUS: "+"
+    MINUS: "-"
+    MUL: "*"
+    DIV: "/"
+    FLOORDIV: "//"
+    MOD: "%"
+    POW: "**"
+    TILDE: "~"
+
+    OP: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>"
           | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!="
-          | "max" | "min"
+    
+    access: TNS "[" (IDX ",")* IDX? "]"
+    call_func: (WORD "(" (expr ",")* expr?  ")")
+    number: NUMBER
+    
     IDX: WORD
     TNS: WORD
     %import common.WORD
+    %import common.NUMBER
     %ignore " "           // Disregard spaces in text
 """)
 
 
 def _parse_einsum_expr(t: Tree) -> EinsumExpr:
     match t:
-        case Tree("start" | "expr", [child]):
+        case Tree("start" | "expr" | "or_expr" | "and_expr" | "not_expr" | "comparison_expr" | 
+                 "bitwise_or_expr" | "bitwise_xor_expr" | "bitwise_and_expr" | "shift_expr" | 
+                 "add_expr" | "mul_expr" | "unary_expr" | "power_expr" | "primary", [child]):
             return _parse_einsum_expr(child)
+        case Tree("or_expr" | "and_expr" | "bitwise_or_expr" | "bitwise_and_expr" | "bitwise_xor_expr" | "shift_expr" | "add_expr" | "mul_expr", args) if len(args) > 1:
+            expr = _parse_einsum_expr(args[0])
+            for i in range(1, len(args), 2):
+                op = args[i]
+                arg = _parse_einsum_expr(args[i + 1])
+                expr = Call(op.value if hasattr(op, 'value') else str(op), [expr, arg])
+            return expr
+        case Tree("comparison_expr", args) if len(args) > 1:
+            expr = _parse_einsum_expr(args[0])
+            for i in range(1, len(args), 2):
+                op = args[i]
+                arg = _parse_einsum_expr(args[i + 1])
+                expr = Call(op.value if hasattr(op, 'value') else str(op), [expr, arg])
+            return expr
+        case Tree("power_expr", args) if len(args) > 1:
+            left = _parse_einsum_expr(args[0])
+            op = args[1]
+            right = _parse_einsum_expr(args[2])
+            return Call(op.value if hasattr(op, 'value') else str(op), [left, right])
+        case Tree("unary_expr" | "not_expr", [op, arg]):
+            return Call(op.value if hasattr(op, 'value') else str(op), [_parse_einsum_expr(arg)])
         case Tree("access", [tns, *idxs]):
             return Access(tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
-        case Tree("call", [Tree("call_prefix", [func, *args])]):
+        case Tree("number", [num]):
+            # Try to preserve integer type if it's a whole number
+            val = float(num.value)
+            if val.is_integer():
+                return Number(int(val))
+            else:
+                return Number(val)
+        case Tree("call_func", [func, *args]):
             return Call(func.value, [_parse_einsum_expr(arg) for arg in args])  # type: ignore[union-attr]
-        case Tree("call", [Tree("call_unary", [func, arg])]):
-            return Call(func.value, [_parse_einsum_expr(arg)])  # type: ignore[union-attr]
-        case Tree("call", [Tree("call_binary", [left, func, right])]):
-            return Call(
-                func.value,  # type: ignore[union-attr]
-                [_parse_einsum_expr(left), _parse_einsum_expr(right)],
-            )
         case _:
             raise ValueError(f"Unknown tree structure: {t}")
 
