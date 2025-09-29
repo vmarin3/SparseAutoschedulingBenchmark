@@ -268,3 +268,89 @@ def test_numeric_literals(xp, rng):
     expected2 = A * 2 + 3
     
     assert np.allclose(result2, expected2)
+
+
+def test_comparison_chaining(xp, rng):
+    """Test that comparison chaining works like Python: a < b < c becomes (a < b) and (b < c)"""
+    A = rng.random((3, 3)) * 10  # Scale to get variety in comparisons
+    B = rng.random((3, 3)) * 10
+    C = rng.random((3, 3)) * 10
+    
+    # Test: A < B < C should be (A < B) and (B < C), not (A < B) < C
+    result = xp.einsum("D[i,j] = A[i,j] < B[i,j] < C[i,j]", A=A, B=B, C=C)
+    expected = np.logical_and(A < B, B < C).astype(float)
+    
+    assert np.allclose(result, expected)
+
+
+def test_comparison_chaining_three_way(xp, rng):
+    """Test three-way comparison chaining with different operators"""
+    A = np.array([[1, 2], [3, 4]])
+    B = np.array([[2, 3], [4, 5]])
+    C = np.array([[3, 4], [5, 6]])
+    
+    # Test: A <= B < C should be (A <= B) and (B < C)
+    result = xp.einsum("D[i,j] = A[i,j] <= B[i,j] < C[i,j]", A=A, B=B, C=C)
+    expected = np.logical_and(A <= B, B < C).astype(float)
+    
+    assert np.allclose(result, expected)
+
+
+def test_comparison_chaining_four_way(xp, rng):
+    """Test four-way comparison chaining"""
+    A = np.array([[1]])
+    B = np.array([[2]])
+    C = np.array([[3]])
+    D = np.array([[4]])
+    
+    # Test: A < B < C < D should be ((A < B) and (B < C)) and (C < D)
+    result = xp.einsum("E[i,j] = A[i,j] < B[i,j] < C[i,j] < D[i,j]", A=A, B=B, C=C, D=D)
+    expected = np.logical_and(np.logical_and(A < B, B < C), C < D).astype(float)
+    
+    assert np.allclose(result, expected)
+
+
+def test_single_comparison_vs_chained(xp, rng):
+    """Test that single comparison and chained comparison work differently"""
+    A = np.array([[2]])
+    B = np.array([[3]])
+    C = np.array([[1]])  # Intentionally make C < A to show difference
+    
+    # Single comparison: A < B should be True
+    result_single = xp.einsum("D[i,j] = A[i,j] < B[i,j]", A=A, B=B)
+    expected_single = (A < B).astype(float)
+    
+    # Chained comparison: A < B < C should be (A < B) and (B < C) = True and False = False
+    result_chained = xp.einsum("E[i,j] = A[i,j] < B[i,j] < C[i,j]", A=A, B=B, C=C)
+    expected_chained = np.logical_and(A < B, B < C).astype(float)
+    
+    assert np.allclose(result_single, expected_single)
+    assert np.allclose(result_chained, expected_chained)
+    
+    # Verify they're different
+    assert not np.allclose(result_single, result_chained)
+
+
+def test_alphanumeric_tensor_names(xp, rng):
+    """Test that tensor names with numbers work correctly"""
+    A1 = rng.random((2, 2))
+    B2 = rng.random((2, 2))
+    C3_test = rng.random((2, 2))
+    
+    # Test basic arithmetic with alphanumeric names
+    result = xp.einsum("result_1[i,j] = A1[i,j] + B2[i,j] * C3_test[i,j]", 
+                      A1=A1, B2=B2, C3_test=C3_test)
+    expected = A1 + (B2 * C3_test)
+    
+    assert np.allclose(result, expected)
+    
+    # Test comparison chaining with alphanumeric names
+    X1 = np.array([[1, 2]])
+    Y2 = np.array([[3, 4]])
+    Z3 = np.array([[5, 6]])
+    
+    result2 = xp.einsum("chain_result[i,j] = X1[i,j] < Y2[i,j] < Z3[i,j]", 
+                       X1=X1, Y2=Y2, Z3=Z3)
+    expected2 = np.logical_and(X1 < Y2, Y2 < Z3).astype(float)
+    
+    assert np.allclose(result2, expected2)

@@ -207,7 +207,7 @@ class Einsum:
 
 lark_parser = Lark("""
     start: increment | assign
-    increment: access (OP | WORD) "=" expr
+    increment: access (OP | FUNC_NAME) "=" expr
     assign: access "=" expr
 
     // Python operator precedence (lowest to highest)
@@ -253,12 +253,12 @@ lark_parser = Lark("""
           | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!="
     
     access: TNS "[" (IDX ",")* IDX? "]"
-    call_func: (WORD "(" (expr ",")* expr?  ")")
+    call_func: (FUNC_NAME "(" (expr ",")* expr?  ")")
     number: NUMBER
     
-    IDX: WORD
-    TNS: WORD
-    %import common.WORD
+    IDX: /[a-zA-Z_][a-zA-Z0-9_]*/
+    TNS: /[a-zA-Z_][a-zA-Z0-9_]*/
+    FUNC_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
     %import common.NUMBER
     %ignore " "           // Disregard spaces in text
 """)
@@ -273,24 +273,25 @@ def _parse_einsum_expr(t: Tree) -> EinsumExpr:
         case Tree("or_expr" | "and_expr" | "bitwise_or_expr" | "bitwise_and_expr" | "bitwise_xor_expr" | "shift_expr" | "add_expr" | "mul_expr", args) if len(args) > 1:
             expr = _parse_einsum_expr(args[0])
             for i in range(1, len(args), 2):
-                op = args[i]
                 arg = _parse_einsum_expr(args[i + 1])
-                expr = Call(op.value if hasattr(op, 'value') else str(op), [expr, arg])
+                expr = Call(args[i].value, [expr, arg])
             return expr
         case Tree("comparison_expr", args) if len(args) > 1:
-            expr = _parse_einsum_expr(args[0])
-            for i in range(1, len(args), 2):
-                op = args[i]
-                arg = _parse_einsum_expr(args[i + 1])
-                expr = Call(op.value if hasattr(op, 'value') else str(op), [expr, arg])
+            # Handle Python's comparison chaining: a < b < c becomes (a < b) and (b < c)
+            left = _parse_einsum_expr(args[0])
+            right = _parse_einsum_expr(args[2])
+            expr = Call(args[1].value, [left, right])
+            for i in range(2, len(args)-2, 2):
+                left = _parse_einsum_expr(args[i])
+                right = _parse_einsum_expr(args[i + 2])
+                expr = Call("and", [expr, Call(args[i + 1].value, [left, right])])
             return expr
         case Tree("power_expr", args) if len(args) > 1:
             left = _parse_einsum_expr(args[0])
-            op = args[1]
             right = _parse_einsum_expr(args[2])
-            return Call(op.value if hasattr(op, 'value') else str(op), [left, right])
+            return Call(args[1].value, [left, right])
         case Tree("unary_expr" | "not_expr", [op, arg]):
-            return Call(op.value if hasattr(op, 'value') else str(op), [_parse_einsum_expr(arg)])
+            return Call(op.value, [_parse_einsum_expr(arg)])
         case Tree("access", [tns, *idxs]):
             return Access(tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
         case Tree("number", [num]):
