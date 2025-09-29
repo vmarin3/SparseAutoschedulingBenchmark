@@ -205,7 +205,12 @@ class Einsum:
         return xp.transpose(val, axis)
 
 
-lark_parser = Lark(r"""
+lark_parser = Lark("""
+    %import common.CNAME
+    %import common.SIGNED_INT
+    %import common.SIGNED_FLOAT
+    %ignore " "           // Disregard spaces in text
+    
     start: increment | assign
     increment: access (OP | FUNC_NAME) "=" expr
     assign: access "=" expr
@@ -256,18 +261,15 @@ lark_parser = Lark(r"""
     call_func: (FUNC_NAME "(" (expr ",")* expr?  ")")
     literal: bool_literal | complex_literal | float_literal | int_literal
     bool_literal: BOOL
-    int_literal: INT
-    float_literal: FLOAT
+    int_literal: SIGNED_INT
+    float_literal: SIGNED_FLOAT
     complex_literal: COMPLEX
     
     BOOL: "True" | "False"
-    INT: /[+-]?\d+/
-    FLOAT: /[+-]?(\d+\.\d*|\d*\.\d+)([eE][+-]?\d+)?/
-    COMPLEX: /[+-]?(\d+\.\d*|\d*\.\d+|\d+)[jJ]/ | /[+-]?(\d+\.\d*|\d*\.\d+)([eE][+-]?\d+)?[jJ]/
-    IDX: /[a-zA-Z_][a-zA-Z0-9_]*/
-    TNS: /[a-zA-Z_][a-zA-Z0-9_]*/
-    FUNC_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    %ignore " "           // Disregard spaces in text
+    COMPLEX: (SIGNED_FLOAT | SIGNED_INT) ("j" | "J")
+    IDX: CNAME
+    TNS: CNAME  
+    FUNC_NAME: CNAME
 """)
 
 
@@ -281,24 +283,24 @@ def _parse_einsum_expr(t: Tree) -> EinsumExpr:
             expr = _parse_einsum_expr(args[0])
             for i in range(1, len(args), 2):
                 arg = _parse_einsum_expr(args[i + 1])
-                expr = Call(args[i].value, [expr, arg])
+                expr = Call(args[i].value, [expr, arg])  # type: ignore[union-attr]
             return expr
         case Tree("comparison_expr", args) if len(args) > 1:
             # Handle Python's comparison chaining: a < b < c becomes (a < b) and (b < c)
             left = _parse_einsum_expr(args[0])
             right = _parse_einsum_expr(args[2])
-            expr = Call(args[1].value, [left, right])
+            expr = Call(args[1].value, [left, right])  # type: ignore[union-attr]
             for i in range(2, len(args)-2, 2):
                 left = _parse_einsum_expr(args[i])
                 right = _parse_einsum_expr(args[i + 2])
-                expr = Call("and", [expr, Call(args[i + 1].value, [left, right])])
+                expr = Call("and", [expr, Call(args[i + 1].value, [left, right])])  # type: ignore[union-attr]
             return expr
         case Tree("power_expr", args) if len(args) > 1:
             left = _parse_einsum_expr(args[0])
             right = _parse_einsum_expr(args[2])
-            return Call(args[1].value, [left, right])
+            return Call(args[1].value, [left, right])  # type: ignore[union-attr]
         case Tree("unary_expr" | "not_expr", [op, arg]):
-            return Call(op.value, [_parse_einsum_expr(arg)])
+            return Call(op.value, [_parse_einsum_expr(arg)])  # type: ignore[union-attr]
         case Tree("access", [tns, *idxs]):
             return Access(tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
         case Tree("bool_literal", [val]):
