@@ -151,8 +151,8 @@ class Access(EinsumExpr):
 
 
 @dataclass
-class Number(EinsumExpr):
-    value: int | float
+class Literal(EinsumExpr):
+    value: bool | int | float | complex
 
     def get_loops(self) -> set[str]:
         return set()
@@ -205,7 +205,7 @@ class Einsum:
         return xp.transpose(val, axis)
 
 
-lark_parser = Lark("""
+lark_parser = Lark(r"""
     start: increment | assign
     increment: access (OP | FUNC_NAME) "=" expr
     assign: access "=" expr
@@ -224,7 +224,7 @@ lark_parser = Lark("""
     mul_expr: unary_expr ((MUL | DIV | FLOORDIV | MOD) unary_expr)*
     unary_expr: (PLUS | MINUS | TILDE) unary_expr | power_expr
     power_expr: primary (POW unary_expr)?
-    primary: call_func | access | number | "(" expr ")"
+    primary: call_func | access | literal | "(" expr ")"
 
     OR: "or"
     AND: "and"
@@ -254,12 +254,19 @@ lark_parser = Lark("""
     
     access: TNS "[" (IDX ",")* IDX? "]"
     call_func: (FUNC_NAME "(" (expr ",")* expr?  ")")
-    number: NUMBER
+    literal: bool_literal | complex_literal | float_literal | int_literal
+    bool_literal: BOOL
+    int_literal: INT
+    float_literal: FLOAT
+    complex_literal: COMPLEX
     
+    BOOL: "True" | "False"
+    INT: /[+-]?\d+/
+    FLOAT: /[+-]?(\d+\.\d*|\d*\.\d+)([eE][+-]?\d+)?/
+    COMPLEX: /[+-]?(\d+\.\d*|\d*\.\d+|\d+)[jJ]/ | /[+-]?(\d+\.\d*|\d*\.\d+)([eE][+-]?\d+)?[jJ]/
     IDX: /[a-zA-Z_][a-zA-Z0-9_]*/
     TNS: /[a-zA-Z_][a-zA-Z0-9_]*/
     FUNC_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
-    %import common.NUMBER
     %ignore " "           // Disregard spaces in text
 """)
 
@@ -268,7 +275,7 @@ def _parse_einsum_expr(t: Tree) -> EinsumExpr:
     match t:
         case Tree("start" | "expr" | "or_expr" | "and_expr" | "not_expr" | "comparison_expr" | 
                  "bitwise_or_expr" | "bitwise_xor_expr" | "bitwise_and_expr" | "shift_expr" | 
-                 "add_expr" | "mul_expr" | "unary_expr" | "power_expr" | "primary", [child]):
+                 "add_expr" | "mul_expr" | "unary_expr" | "power_expr" | "primary" | "literal", [child]):
             return _parse_einsum_expr(child)
         case Tree("or_expr" | "and_expr" | "bitwise_or_expr" | "bitwise_and_expr" | "bitwise_xor_expr" | "shift_expr" | "add_expr" | "mul_expr", args) if len(args) > 1:
             expr = _parse_einsum_expr(args[0])
@@ -294,13 +301,14 @@ def _parse_einsum_expr(t: Tree) -> EinsumExpr:
             return Call(op.value, [_parse_einsum_expr(arg)])
         case Tree("access", [tns, *idxs]):
             return Access(tns.value, [idx.value for idx in idxs])  # type: ignore[union-attr]
-        case Tree("number", [num]):
-            # Try to preserve integer type if it's a whole number
-            val = float(num.value)
-            if val.is_integer():
-                return Number(int(val))
-            else:
-                return Number(val)
+        case Tree("bool_literal", [val]):
+            return Literal(val.value == "True")  # type: ignore[union-attr]
+        case Tree("int_literal", [val]):
+            return Literal(int(val.value))  # type: ignore[union-attr]
+        case Tree("float_literal", [val]):
+            return Literal(float(val.value))  # type: ignore[union-attr]
+        case Tree("complex_literal", [val]):
+            return Literal(complex(val.value))  # type: ignore[union-attr]
         case Tree("call_func", [func, *args]):
             return Call(func.value, [_parse_einsum_expr(arg) for arg in args])  # type: ignore[union-attr]
         case _:

@@ -354,3 +354,134 @@ def test_alphanumeric_tensor_names(xp, rng):
     expected2 = np.logical_and(X1 < Y2, Y2 < Z3).astype(float)
     
     assert np.allclose(result2, expected2)
+
+
+def test_bool_literals(xp, rng):
+    """Test that boolean literals work correctly"""
+    A = rng.random((2, 2))
+    
+    # Test True literal
+    result_true = xp.einsum("B[i,j] = A[i,j] and True", A=A)
+    expected_true = np.logical_and(A, True).astype(float)
+    assert np.allclose(result_true, expected_true)
+    
+    # Test False literal
+    result_false = xp.einsum("C[i,j] = A[i,j] or False", A=A)
+    expected_false = np.logical_or(A, False).astype(float)
+    assert np.allclose(result_false, expected_false)
+    
+    # Test boolean operations with literals
+    A_bool = (rng.random((2, 2)) > 0.5)
+    result_and = xp.einsum("D[i,j] = A_bool[i,j] and True and False", A_bool=A_bool)
+    expected_and = np.logical_and(np.logical_and(A_bool, True), False)
+    assert np.allclose(result_and, expected_and)
+
+
+def test_int_literals(xp, rng):
+    """Test that integer literals work correctly"""
+    A = rng.random((2, 2))
+    
+    # Test positive integer
+    result_pos = xp.einsum("B[i,j] = A[i,j] + 42", A=A)
+    expected_pos = A + 42
+    assert np.allclose(result_pos, expected_pos)
+    
+    # Test negative integer
+    result_neg = xp.einsum("C[i,j] = A[i,j] * -5", A=A)
+    expected_neg = A * (-5)
+    assert np.allclose(result_neg, expected_neg)
+    
+    # Test zero
+    result_zero = xp.einsum("D[i,j] = A[i,j] + 0", A=A)
+    expected_zero = A + 0
+    assert np.allclose(result_zero, expected_zero)
+    
+    # Test large integer
+    result_large = xp.einsum("E[i,j] = A[i,j] + 123456789", A=A)
+    expected_large = A + 123456789
+    assert np.allclose(result_large, expected_large)
+
+
+def test_float_literals(xp, rng):
+    """Test that float literals work correctly"""
+    A = rng.random((2, 2))
+    
+    # Test positive float
+    result_pos = xp.einsum("B[i,j] = A[i,j] + 3.14159", A=A)
+    expected_pos = A + 3.14159
+    assert np.allclose(result_pos, expected_pos)
+    
+    # Test negative float
+    result_neg = xp.einsum("C[i,j] = A[i,j] * -2.71828", A=A)
+    expected_neg = A * (-2.71828)
+    assert np.allclose(result_neg, expected_neg)
+    
+    # Test scientific notation
+    result_sci = xp.einsum("D[i,j] = A[i,j] + 1.5e-3", A=A)
+    expected_sci = A + 1.5e-3
+    assert np.allclose(result_sci, expected_sci)
+    
+    # Test very small float
+    result_small = xp.einsum("E[i,j] = A[i,j] + 0.000001", A=A)
+    expected_small = A + 0.000001
+    assert np.allclose(result_small, expected_small)
+
+
+def test_complex_literals(xp, rng):
+    """Test that complex literals work correctly"""
+    A = rng.random((2, 2)).astype(complex)  # Use complex arrays
+    
+    # Test complex with real and imaginary parts
+    result_complex = xp.einsum("B[i,j] = A[i,j] + (3+4j)", A=A)
+    expected_complex = A + (3+4j)
+    assert np.allclose(result_complex, expected_complex)
+    
+    # Test pure imaginary
+    result_imag = xp.einsum("C[i,j] = A[i,j] * 2j", A=A)
+    expected_imag = A * 2j
+    assert np.allclose(result_imag, expected_imag)
+    
+    # Test complex with negative parts
+    result_neg = xp.einsum("D[i,j] = A[i,j] + (-1-2j)", A=A)
+    expected_neg = A + (-1-2j)
+    assert np.allclose(result_neg, expected_neg)
+
+
+def test_mixed_literal_types(xp, rng):
+    """Test expressions mixing different literal types"""
+    A = rng.random((2, 2))
+    
+    # Test int + float
+    result_int_float = xp.einsum("B[i,j] = A[i,j] + 5 + 3.14", A=A)
+    expected_int_float = A + 5 + 3.14
+    assert np.allclose(result_int_float, expected_int_float)
+    
+    # Test operator precedence with literals
+    result_precedence = xp.einsum("C[i,j] = A[i,j] + 2 * 3", A=A)
+    expected_precedence = A + (2 * 3)  # Should be A + 6, not (A + 2) * 3
+    assert np.allclose(result_precedence, expected_precedence)
+    
+    # Test power with literals
+    result_power = xp.einsum("D[i,j] = A[i,j] + 2 ** 3", A=A)
+    expected_power = A + (2 ** 3)  # Should be A + 8
+    assert np.allclose(result_power, expected_power)
+
+
+def test_literal_edge_cases(xp, rng):
+    """Test edge cases with literals"""
+    A = rng.random((2, 2))
+    
+    # Test multiple literals in sequence
+    result_multi = xp.einsum("B[i,j] = A[i,j] + 1 + 2 + 3", A=A)
+    expected_multi = A + 1 + 2 + 3  # Should be A + 6
+    assert np.allclose(result_multi, expected_multi)
+    
+    # Test literals in comparisons
+    result_comp = xp.einsum("C[i,j] = A[i,j] > 0.5", A=A)
+    expected_comp = (A > 0.5).astype(float)
+    assert np.allclose(result_comp, expected_comp)
+    
+    # Test literals with parentheses
+    result_parens = xp.einsum("D[i,j] = A[i,j] * (2 + 3)", A=A)
+    expected_parens = A * (2 + 3)  # Should be A * 5
+    assert np.allclose(result_parens, expected_parens)
