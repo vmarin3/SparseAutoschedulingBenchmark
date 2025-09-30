@@ -3,4 +3,4 @@ __all__ = [
     "einsum",
 ]
 from .BenchmarkRunner import main as main
-from .Frameworks.einsum import einsum
+from .Frameworks import einsum
