@@ -176,7 +176,10 @@ def test_operator_precedence_logical_and_or(xp, rng):
 
 
 def test_operator_precedence_bitwise_operations(xp, rng):
-    """Test bitwise operator precedence: | has lower precedence than ^ which has lower than &"""
+    """Test bitwise operator precedence.
+
+    | has lower precedence than ^ which has lower than &
+    """
     # Use integer arrays for bitwise operations
     A = rng.integers(0, 8, size=(3, 3))
     B = rng.integers(0, 8, size=(3, 3))
@@ -268,7 +271,10 @@ def test_numeric_literals(xp, rng):
 
 
 def test_comparison_chaining(xp, rng):
-    """Test that comparison chaining works like Python: a < b < c becomes (a < b) and (b < c)"""
+    """Test that comparison chaining works like Python.
+
+    a < b < c becomes (a < b) and (b < c)
+    """
     A = rng.random((3, 3)) * 10  # Scale to get variety in comparisons
     B = rng.random((3, 3)) * 10
     C = rng.random((3, 3)) * 10
@@ -317,7 +323,8 @@ def test_single_comparison_vs_chained(xp, rng):
     result_single = xp.einsum("D[i,j] = A[i,j] < B[i,j]", A=A, B=B)
     expected_single = (A < B).astype(float)
 
-    # Chained comparison: A < B < C should be (A < B) and (B < C) = True and False = False
+    # Chained comparison: A < B < C should be (A < B) and (B < C)
+    # = True and False = False
     result_chained = xp.einsum("E[i,j] = A[i,j] < B[i,j] < C[i,j]", A=A, B=B, C=C)
     expected_chained = np.logical_and(A < B, B < C).astype(float)
 
