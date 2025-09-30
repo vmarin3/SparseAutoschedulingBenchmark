@@ -1,6 +1,6 @@
 __all__ = [
-    "main",
     "einsum",
+    "main",
 ]
 from .BenchmarkRunner import main as main
 from .Frameworks import einsum

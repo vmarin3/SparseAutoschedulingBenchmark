@@ -1,3 +1,3 @@
 from .einsum import einsum
 
-__all__ = ['einsum']
+__all__ = ["einsum"]
