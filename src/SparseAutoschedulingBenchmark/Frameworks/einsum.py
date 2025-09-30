@@ -210,7 +210,7 @@ lark_parser = Lark("""
     %import common.SIGNED_INT
     %import common.SIGNED_FLOAT
     %ignore " "           // Disregard spaces in text
-    
+
     start: increment | assign
     increment: access (OP | FUNC_NAME) "=" expr
     assign: access "=" expr
@@ -256,7 +256,7 @@ lark_parser = Lark("""
 
     OP: "+" | "-" | "*" | "or" | "and" | "|" | "&" | "^" | "<<" | ">>"
           | "//" | "/" | "%" | "**" | ">" | "<" | ">=" | "<=" | "==" | "!="
-    
+
     access: TNS "[" (IDX ",")* IDX? "]"
     call_func: (FUNC_NAME "(" (expr ",")* expr?  ")")
     literal: bool_literal | complex_literal | float_literal | int_literal
@@ -264,22 +264,48 @@ lark_parser = Lark("""
     int_literal: SIGNED_INT
     float_literal: SIGNED_FLOAT
     complex_literal: COMPLEX
-    
+
     BOOL: "True" | "False"
     COMPLEX: (SIGNED_FLOAT | SIGNED_INT) ("j" | "J")
     IDX: CNAME
-    TNS: CNAME  
+    TNS: CNAME
     FUNC_NAME: CNAME
 """)
 
 
 def _parse_einsum_expr(t: Tree) -> EinsumExpr:
     match t:
-        case Tree("start" | "expr" | "or_expr" | "and_expr" | "not_expr" | "comparison_expr" | 
-                 "bitwise_or_expr" | "bitwise_xor_expr" | "bitwise_and_expr" | "shift_expr" | 
-                 "add_expr" | "mul_expr" | "unary_expr" | "power_expr" | "primary" | "literal", [child]):
+        case Tree(
+            "start"
+            | "expr"
+            | "or_expr"
+            | "and_expr"
+            | "not_expr"
+            | "comparison_expr"
+            | "bitwise_or_expr"
+            | "bitwise_xor_expr"
+            | "bitwise_and_expr"
+            | "shift_expr"
+            | "add_expr"
+            | "mul_expr"
+            | "unary_expr"
+            | "power_expr"
+            | "primary"
+            | "literal",
+            [child],
+        ):
             return _parse_einsum_expr(child)
-        case Tree("or_expr" | "and_expr" | "bitwise_or_expr" | "bitwise_and_expr" | "bitwise_xor_expr" | "shift_expr" | "add_expr" | "mul_expr", args) if len(args) > 1:
+        case Tree(
+            "or_expr"
+            | "and_expr"
+            | "bitwise_or_expr"
+            | "bitwise_and_expr"
+            | "bitwise_xor_expr"
+            | "shift_expr"
+            | "add_expr"
+            | "mul_expr",
+            args,
+        ) if len(args) > 1:
             expr = _parse_einsum_expr(args[0])
             for i in range(1, len(args), 2):
                 arg = _parse_einsum_expr(args[i + 1])
@@ -290,7 +316,7 @@ def _parse_einsum_expr(t: Tree) -> EinsumExpr:
             left = _parse_einsum_expr(args[0])
             right = _parse_einsum_expr(args[2])
             expr = Call(args[1].value, [left, right])  # type: ignore[union-attr]
-            for i in range(2, len(args)-2, 2):
+            for i in range(2, len(args) - 2, 2):
                 left = _parse_einsum_expr(args[i])
                 right = _parse_einsum_expr(args[i + 2])
                 expr = Call("and", [expr, Call(args[i + 1].value, [left, right])])  # type: ignore[union-attr]
@@ -339,5 +365,43 @@ def parse_einsum(expr: str) -> Einsum:
 
 
 def einsum(xp, prgm, **kwargs):
+    """Execute an einsum expression using the specified array framework.
+
+    This function parses and executes einsum-like expressions with extended syntax
+    that supports various operations beyond traditional Einstein summation notation.
+
+    Args:
+        xp: Array framework module (e.g., numpy, cupy, or other array library)
+            that provides the underlying array operations.
+        prgm (str): Einsum program string specifying the computation. The syntax
+            supports:
+            - Assignment: "C[i,j] = A[i,j] + B[j,i]"
+            - Increment: "C[i,j] += A[i,k] * B[k,j]"
+            - Reductions: "C[i] += A[i,j]", "C[i] max= A[i,j]", "C[i] &= A[i,j]"
+            - Arithmetic operations: +, -, *, /, //, %, **
+            - Comparison operations: ==, !=, <, <=, >, >=
+            - Logical operations: and, or, not
+            - Bitwise operations: &, |, ^, <<, >>
+            - Function calls and complex expressions with parentheses
+            - Mathematical functions: abs, sqrt, exp, log, sin, cos, tan, etc.
+            - Literal values: integers, floats, booleans, and complex numbers
+            - Python operator precedence and parentheses for grouping
+        **kwargs: Named arrays referenced in the einsum expression. The keys
+            should match the tensor names used in the program string.
+
+    Returns:
+        The result array from executing the einsum expression.
+
+    Examples:
+        >>> import numpy as np
+        >>> A = np.random.rand(3, 4)
+        >>> B = np.random.rand(4, 3)
+        >>> # Matrix addition with transpose
+        >>> C = einsum(np, "C[i,j] = A[i,j] + B[j,i]", A=A, B=B)
+        >>> # Matrix multiplication
+        >>> D = einsum(np, "D[i,j] += A[i,k] * B[k,j]", A=A, B=B)
+        >>> # Min-Plus multiplication with shift
+        >>> E = einsum(np, "E[i] min= A[i,k] + D[k,j] << 1", A=A, D=D)
+    """
     prgm = parse_einsum(prgm)
     return prgm.run(xp, kwargs)
