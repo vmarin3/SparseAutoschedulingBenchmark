@@ -33,29 +33,30 @@ AI was used to debug code. This statement was written by hand.
 def benchmark_jacobi(
     xp, A_bench, b_bench, x_bench, rel_tol=1e-8, abs_tol=1e-20, max_iters=10_000
 ):
-    A_lazy = xp.lazy(xp.from_benchmark(A_bench))
-    b_lazy = xp.lazy(xp.from_benchmark(b_bench))
-    x_lazy = xp.lazy(xp.from_benchmark(x_bench))
+    A = xp.lazy(xp.from_benchmark(A_bench))
+    b = xp.lazy(xp.from_benchmark(b_bench))
+    x = xp.lazy(xp.from_benchmark(x_bench))
 
-    tolerance = max(xp.compute(xp.lazy(rel_tol) * norm(xp, b_lazy))[()], abs_tol)
-    d_lazy = xp.diagonal(A_lazy)
-    if xp.compute(xp.any(d_lazy == 0)):
+    tolerance = max(xp.compute(xp.lazy(rel_tol) * norm(xp, b))[()], abs_tol)
+    d = xp.diagonal(A)
+    if xp.compute(xp.any(d == 0)):
         raise ValueError("Jacobi requires nonzero diagonal entries.")
 
-    r_lazy = b_lazy - xp.matmul(A_lazy, x_lazy)
-    res = norm(xp, r_lazy)
+    r = b - A @ x
     it = 0
 
-    while xp.compute(res)[()] >= tolerance and it < max_iters:
-        x_lazy = x_lazy + xp.divide(r_lazy, d_lazy)
-        r_lazy = b_lazy - xp.matmul(A_lazy, x_lazy)
-        res = norm(xp, r_lazy)
+    while xp.compute(norm(xp, r))[()] >= tolerance and it < max_iters:
+        x = x + r / d
+        x = xp.lazy(xp.compute(x))
+
+        r = b - xp.matmul(A, x)
+        r = xp.lazy(xp.compute(r))
         it += 1
     if it >= max_iters:
         raise RuntimeError(
             "Jacobi did not converge within the maximum number of iterations"
         )
-    x_solution = xp.compute(x_lazy)
+    x_solution = xp.compute(x)
     return xp.to_benchmark(x_solution)
 
 

@@ -76,10 +76,10 @@ class CheckerTensor:
         return self.xp.bitwise_xor(other, self)
 
     def __truediv__(self, other):
-        return self.xp.truediv(self, other)
+        return self.xp.true_divide(self, other)
 
     def __rtruediv__(self, other):
-        return self.xp.truediv(other, self)
+        return self.xp.true_divide(other, self)
 
     def __floordiv__(self, other):
         return self.xp.floordiv(self, other)
