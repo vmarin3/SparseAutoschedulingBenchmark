@@ -59,7 +59,8 @@ Tuple of (A_bench, B_bench, C_bench, lambda_bench) in binsparse format where:
 - lambda are the component weights
 """
 def benchmark_cp_als(xp, X_bench, rank, max_iter=50):
-    X = xp.from_benchmark(X_bench)
+    X_eager = xp.from_benchmark(X_bench)
+    X = xp.lazy(X_eager)
 
     I, J, K = X_bench.data["shape"]
     dtype = X_bench.data["values"].dtype
@@ -76,15 +77,41 @@ def benchmark_cp_als(xp, X_bench, rank, max_iter=50):
     for iteration in range(max_iter):
 
         # Update A
-        mttkrp_result = xp.einsum("V[i, r] += X[i, j, k] * B[j, r] * C[k, r]", X = X, B = B, C = C)
+        mttkrp_result = xp.einsum("mttkrp_result[i, r] += X[i, j, k] * B[j, r] * C[k, r]", X = X, B = B, C = C)
         CtC = xp.einsum("CtC[r, s] += C[k, r] * C[k, s]", C = C)
         BtB = xp.einsum("BtB[r, s] += B[j, r] * B[j, s]", B = B)
         G = xp.multiply(xp.compute(CtC), xp.compute(BtB))
         G_pinv = xp.linalg.pinv(xp.compute(G))
-        A = xp.matmul(xp.compute(mttkrp_result), G_pinv)
+        A_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
+        A = xp.lazy(A_eager) # Converting back to lazy for next iteration
 
-        # Update B (WIP)
-        mttkrp_result = xp.einsum("V[j, r] += X[i, j, k] * A[i, r] * C[k, r]", X = X, A = A, C = C)
+        # Update B
+        mttkrp_result = xp.einsum("mttkrp_result[j, r] += X[i, j, k] * A[i, r] * C[k, r]", X = X, A = A, C = C)
+        AtA = xp.einsum("AtA[r, s] += A[i, r] * A[i, s]", A = A)
+        G = xp.multiply(xp.compute(CtC), xp.compute(AtA))
+        G_pinv = xp.linalg.pinv(xp.compute(G))
+        B_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
+        B = xp.lazy(B_eager) 
+
+        # Update C
+        mttkrp_result = xp.einsum("mttkrp_result[k, r] += X[i, j, k] * A[i, r] * B[j, r]", X = X, A = A, B = B)
+        BtB = xp.einsum("BtB[r, s] += B[j, r] * B[j, s]", B = B)
+        G = xp.multiply(xp.compute(BtB), xp.compute(AtA))
+        G_pinv = xp.linalg.pinv(xp.compute(G))
+        C_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
+        C = xp.lazy(C_eager)
+
+    # Normalizing factors
+    A_norms_sq = xp.einsum("norms[r] += A[i, r] ** 2", A = A)
+    B_norms_sq = xp.einsum("norms[r] += B[j, r] ** 2", B = B)
+    C_norms_sq = xp.einsum("norms[r] += C[k, r] ** 2", C = C)
+
+    A_norms = xp.compute(xp.sqrt(xp.compute(A_norms_sq)))
+    B_norms = xp.compute(xp.sqrt(xp.compute(B_norms_sq)))
+    C_norms = xp.compute(xp.sqrt(xp.compute(C_norms_sq)))
+
+    # Compute lambda
+    
 
 
 
