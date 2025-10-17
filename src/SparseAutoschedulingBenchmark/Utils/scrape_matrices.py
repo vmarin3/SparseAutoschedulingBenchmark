@@ -11,6 +11,7 @@ import random
 import numpy as np
 import scipy as sp
 from scipy.io import mmread
+from scipy.sparse.linalg._eigen.arpack import ArpackError
 
 import ssgetpy
 
@@ -133,7 +134,7 @@ def main():
                 )
                 print(f"Saved {matrix.name} convergence criteria to {output_file}")
 
-            except ValueError as e:
+            except ArpackError as e:
                 print(f"Error computing convergence criteria for {matrix.name}: {e}")
                 continue
 
