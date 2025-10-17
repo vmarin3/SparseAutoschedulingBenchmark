@@ -11,8 +11,6 @@ from .Benchmarks.Jacobi import (
     dg_jacobi_sparse_6,
     dg_jacobi_sparse_7,
     dg_jacobi_sparse_8,
-    dg_jacobi_sparse_9,
-    dg_jacobi_sparse_10,
 )
 from .Benchmarks.MatMul import (
     benchmark_matmul,
@@ -42,8 +40,6 @@ DATA_GENERATOR_DICT = {
         "jacobi_sparse_6": dg_jacobi_sparse_6,
         "jacobi_sparse_7": dg_jacobi_sparse_7,
         "jacobi_sparse_8": dg_jacobi_sparse_8,
-        "jacobi_sparse_9": dg_jacobi_sparse_9,
-        "jacobi_sparse_10": dg_jacobi_sparse_10,
     },
 }
 

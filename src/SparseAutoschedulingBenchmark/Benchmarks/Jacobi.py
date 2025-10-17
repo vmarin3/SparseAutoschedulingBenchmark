@@ -140,18 +140,16 @@ def dg_jacobi_sparse_7():
 
 
 def dg_jacobi_sparse_8():
-    return generate_jacobi_data("obstclae")  # nnz = 197,608
-
-
-def dg_jacobi_sparse_9():
-    return generate_jacobi_data("minsurfo")  # nnz = 203,622
-
-
-def dg_jacobi_sparse_10():
     return generate_jacobi_data("Trefethen_20000")  # nnz = 554,466
 
 
 # Matrices below run extremely slowly on numpy framework (>1 minutes per convergence):
+
+# def dg_jacobi_sparse_9():
+#     return generate_jacobi_data("obstclae")  # nnz = 197,608
+
+# def dg_jacobi_sparse_10():
+#     return generate_jacobi_data("minsurfo")  # nnz = 203,622
 
 # def dg_jacobi_sparse_11():
 #     return generate_jacobi_data("jnlbrng1") #nnz = 199,200
