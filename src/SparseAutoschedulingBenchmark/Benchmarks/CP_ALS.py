@@ -77,7 +77,7 @@ def benchmark_cp_als(xp, X_bench, rank, max_iter=50):
         CtC = xp.einsum("CtC[r, s] += C[k, r] * C[k, s]", C = C)
         BtB = xp.einsum("BtB[r, s] += B[j, r] * B[j, s]", B = B)
         G = xp.multiply(xp.compute(CtC), xp.compute(BtB))
-        G_pinv = xp.linalg.pinv(xp.compute(G))
+        G_pinv = np.linalg.pinv(xp.compute(G))
         A_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
         A = xp.lazy(A_eager) # Converting back to lazy for next iteration
 
@@ -85,7 +85,7 @@ def benchmark_cp_als(xp, X_bench, rank, max_iter=50):
         mttkrp_result = xp.einsum("mttkrp_result[j, r] += X[i, j, k] * A[i, r] * C[k, r]", X = X, A = A, C = C)
         AtA = xp.einsum("AtA[r, s] += A[i, r] * A[i, s]", A = A)
         G = xp.multiply(xp.compute(CtC), xp.compute(AtA))
-        G_pinv = xp.linalg.pinv(xp.compute(G))
+        G_pinv = np.linalg.pinv(xp.compute(G))
         B_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
         B = xp.lazy(B_eager) 
 
@@ -93,7 +93,7 @@ def benchmark_cp_als(xp, X_bench, rank, max_iter=50):
         mttkrp_result = xp.einsum("mttkrp_result[k, r] += X[i, j, k] * A[i, r] * B[j, r]", X = X, A = A, B = B)
         BtB = xp.einsum("BtB[r, s] += B[j, r] * B[j, s]", B = B)
         G = xp.multiply(xp.compute(BtB), xp.compute(AtA))
-        G_pinv = xp.linalg.pinv(xp.compute(G))
+        G_pinv = np.linalg.pinv(xp.compute(G))
         C_eager = xp.matmul(xp.compute(mttkrp_result), G_pinv)
         C = xp.lazy(C_eager)
 
