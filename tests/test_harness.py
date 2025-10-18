@@ -1,5 +1,7 @@
 import numpy as np
+
 import sparse as sp
+
 from SparseAutoschedulingBenchmark.Benchmarks.MatMul import (
     benchmark_matmul,
     dg_matmul_dense_small,
@@ -7,7 +9,9 @@ from SparseAutoschedulingBenchmark.Benchmarks.MatMul import (
 from SparseAutoschedulingBenchmark.BinsparseFormat import BinsparseFormat
 from SparseAutoschedulingBenchmark.Frameworks.CheckerFramework import CheckerFramework
 from SparseAutoschedulingBenchmark.Frameworks.NumpyFramework import NumpyFramework
-from SparseAutoschedulingBenchmark.Frameworks.PyDataSparseFramework import PyDataSparseFramework
+from SparseAutoschedulingBenchmark.Frameworks.PyDataSparseFramework import (
+    PyDataSparseFramework,
+)
 
 
 def test_numpy_framework():
@@ -43,6 +47,7 @@ def test_numpy_framework():
     )
     assert bsf_sparse == bsf_sparse_converted, "Sparse array to_benchmark failed"
 
+
 def test_pydata_sparse_framework():
     framework = PyDataSparseFramework()
 
@@ -50,7 +55,9 @@ def test_pydata_sparse_framework():
     arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
     bsf = BinsparseFormat.from_numpy(arr)
     arr_converted = framework.from_benchmark(bsf)
-    assert np.array_equal(arr, sp.asnumpy(arr_converted)), "Dense array conversion failed"
+    assert np.array_equal(arr, sp.asnumpy(arr_converted)), (
+        "Dense array conversion failed"
+    )
 
     bsf_converted = framework.to_benchmark(arr_converted)
     assert BinsparseFormat.to_coo(bsf) == BinsparseFormat.to_coo(bsf_converted), (

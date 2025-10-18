@@ -1,9 +1,6 @@
-import numpy as np
-
 from ..BinsparseFormat import BinsparseFormat
 from .AbstractFramework import AbstractFramework
 from .NumpyFramework import NumpyFramework
-from .einsum import einsum
 
 
 def unwrap(x):
@@ -303,7 +300,9 @@ class CheckerFramework(AbstractFramework):
     are used correctly in a benchmark function.
     """
 
-    def __init__(self, xp=NumpyFramework()):
+    def __init__(self, xp=None):
+        if xp is None:
+            xp = NumpyFramework()
         self.xp = xp
 
     def from_benchmark(self, array):
@@ -340,7 +339,7 @@ class CheckerFramework(AbstractFramework):
 
     def einsum(self, prgm, **kwargs):
         return CheckerOperator(self, self.xp.einsum)(prgm, **kwargs)
-    
+
     def with_fill_value(self, array, value):
         return CheckerOperator(self, self.xp.with_fill_value)(array, value)
 

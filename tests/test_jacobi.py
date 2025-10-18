@@ -6,7 +6,9 @@ from SparseAutoschedulingBenchmark.Benchmarks.Jacobi import benchmark_jacobi
 from SparseAutoschedulingBenchmark.BinsparseFormat import BinsparseFormat
 from SparseAutoschedulingBenchmark.Frameworks.CheckerFramework import CheckerFramework
 from SparseAutoschedulingBenchmark.Frameworks.NumpyFramework import NumpyFramework
-from SparseAutoschedulingBenchmark.Frameworks.PyDataSparseFramework import PyDataSparseFramework
+from SparseAutoschedulingBenchmark.Frameworks.PyDataSparseFramework import (
+    PyDataSparseFramework,
+)
 
 
 @pytest.mark.parametrize(

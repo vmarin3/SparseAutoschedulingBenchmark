@@ -1,4 +1,3 @@
-from numpy import ndarray
 import sparse as sp
 
 from ..BinsparseFormat import BinsparseFormat
@@ -12,9 +11,8 @@ class PyDataSparseFramework(AbstractFramework):
 
     def from_benchmark(self, array):
         if array.data["format"] == "dense":
-            data =  sp.asarray(array.data["values"].reshape(array.data["shape"]))
-            return data
-        elif array.data["format"] == "COO":
+            return sp.asarray(array.data["values"].reshape(array.data["shape"]))
+        if array.data["format"] == "COO":
             indices = []
             idx_dim = 0
             while "indices_" + str(idx_dim) in array.data:
@@ -29,10 +27,9 @@ class PyDataSparseFramework(AbstractFramework):
         if isinstance(array, sp.COO):
             print(type(array))
             return BinsparseFormat.from_coo(array.coords, array.data, array.shape)
-        elif isinstance(array, sp.SparseArray):
+        if isinstance(array, sp.SparseArray):
             return self.to_benchmark(array.tocoo())
-        else:
-            raise ValueError("Unsupported array type: " + str(type(array)))
+        raise ValueError("Unsupported array type: " + str(type(array)))
 
     def lazy(self, array):
         return array
@@ -42,14 +39,13 @@ class PyDataSparseFramework(AbstractFramework):
 
     def einsum(self, prgm, **kwargs):
         return einsum(sp, prgm, **kwargs)
-    
+
     def with_fill_value(self, array, value):
         if isinstance(array, sp.SparseArray):
             res = array.copy(deep=False)
             res.fill_value = array.dtype.type(value)
             return res
-        else:
-            return array
+        return array
 
     def __getattr__(self, name):
         return getattr(sp, name)
