@@ -36,6 +36,9 @@ class NumpyFramework(AbstractFramework):
 
     def einsum(self, prgm, **kwargs):
         return einsum(np, prgm, **kwargs)
+    
+    def with_fill_value(self, array, value):
+        return array
 
     def __getattr__(self, name):
         return getattr(np, name)

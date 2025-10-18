@@ -1,3 +1,4 @@
+from numpy import ndarray
 import sparse as sp
 
 from ..BinsparseFormat import BinsparseFormat
@@ -11,9 +12,9 @@ class PyDataSparseFramework(AbstractFramework):
 
     def from_benchmark(self, array):
         if array.data["format"] == "dense":
-            data =  sp.asarray(array.data["values"]).reshape(array.data["shape"])
+            data =  sp.asarray(array.data["values"].reshape(array.data["shape"]))
             return data
-        if array.data["format"] == "COO":
+        elif array.data["format"] == "COO":
             indices = []
             idx_dim = 0
             while "indices_" + str(idx_dim) in array.data:
@@ -25,11 +26,13 @@ class PyDataSparseFramework(AbstractFramework):
         raise ValueError("Unsupported format: " + array.data["format"])
 
     def to_benchmark(self, array):
-        if array.__class__ == sp.COO:
+        if isinstance(array, sp.COO):
+            print(type(array))
             return BinsparseFormat.from_coo(array.coords, array.data, array.shape)
-        elif array.__class__ == sp.SparseArray:
-            dense_array = array.todense()
-            return BinsparseFormat.from_numpy(dense_array)
+        elif isinstance(array, sp.SparseArray):
+            return self.to_benchmark(array.tocoo())
+        else:
+            raise ValueError("Unsupported array type: " + str(type(array)))
 
     def lazy(self, array):
         return array
@@ -39,6 +42,14 @@ class PyDataSparseFramework(AbstractFramework):
 
     def einsum(self, prgm, **kwargs):
         return einsum(sp, prgm, **kwargs)
+    
+    def with_fill_value(self, array, value):
+        if isinstance(array, sp.SparseArray):
+            res = array.copy(deep=False)
+            res.fill_value = array.dtype.type(value)
+            return res
+        else:
+            return array
 
     def __getattr__(self, name):
         return getattr(sp, name)

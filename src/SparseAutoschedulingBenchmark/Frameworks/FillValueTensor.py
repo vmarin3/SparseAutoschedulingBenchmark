@@ -1,21 +1,13 @@
-import numpy as np
-
-from ..BinsparseFormat import BinsparseFormat
-from .AbstractFramework import AbstractFramework
-from .NumpyFramework import NumpyFramework
-from .einsum import einsum
-
-
 def unwrap(x):
-    if isinstance(x, CheckerTensor):
+    if isinstance(x, FillValueTensor):
         return x.array
     return x
 
-
-class CheckerTensor:
-    def __init__(self, xp, array):
+class FillValueTensor:
+    def __init__(self, xp, array, fill_value):
         self.xp = xp
         self.array = unwrap(array)
+        self.fill_value = fill_value
 
     def __add__(self, other):
         return self.xp.add(self, other)
@@ -229,120 +221,3 @@ class CheckerTensor:
 
     def __getattr__(self, name):
         return getattr(self.array, name)
-
-
-class LazyCheckerTensor(CheckerTensor):
-    def __getitem__(self, key):
-        raise AssertionError(
-            "Lazy Tensors should not be indexed directly; they must be computed first!"
-        )
-
-    def __setitem__(self, key, value):
-        raise AssertionError(
-            "Lazy Tensors should not be modified directly; they must be computed first!"
-        )
-
-    def __complex__(self):
-        """
-        Converts a zero-dimensional array to a Python `complex` object.
-        """
-        raise ValueError("Cannot convert lazy tensor to complex.")
-
-    def __float__(self):
-        """
-        Converts a zero-dimensional array to a Python `float` object.
-        """
-        raise ValueError("Cannot convert lazy tensor to float.")
-
-    def __int__(self):
-        """
-        Converts a zero-dimensional array to a Python `int` object.
-        """
-        raise ValueError("Cannot convert lazy tensor to int.")
-
-    def __bool__(self):
-        """
-        Converts a zero-dimensional array to a Python `bool` object.
-        """
-        raise ValueError("Cannot convert lazy tensor to bool.")
-
-
-class EagerCheckerTensor(CheckerTensor):
-    def __getitem__(self, key):
-        return self.array.__getitem__(key)
-
-    """
-    Though we don't want to run computations on eager tensors, we probably want
-    to allow in-place updates. This is sticky.
-    """
-
-    def __setitem__(self, key, value):
-        return self.array.__setitem__(key, value)
-
-
-class CheckerOperator:
-    def __init__(self, xp, operator):
-        self.xp = xp
-        self.operator = operator
-
-    def __call__(self, *args, **kwargs):
-        if any(isinstance(arg, LazyCheckerTensor) for arg in args) or any(
-            isinstance(kwarg, LazyCheckerTensor) for kwarg in kwargs.values()
-        ):
-            args = [unwrap(arg) for arg in args]
-            kwargs = {k: unwrap(v) for k, v in kwargs.items()}
-            return LazyCheckerTensor(self.xp, self.operator(*args, **kwargs))
-        args = [unwrap(arg) for arg in args]
-        kwargs = {k: unwrap(v) for k, v in kwargs.items()}
-        return EagerCheckerTensor(self.xp, self.operator(*args, **kwargs))
-
-
-class CheckerFramework(AbstractFramework):
-    """
-    This framework uses numpy to perform operations, but checks that lazy and compute
-    are used correctly in a benchmark function.
-    """
-
-    def __init__(self, xp=NumpyFramework()):
-        self.xp = xp
-
-    def from_benchmark(self, array):
-        if array.data["format"] == "dense":
-            return EagerCheckerTensor(
-                self, self.xp.array(array.data["values"]).reshape(array.data["shape"])
-            )
-        if array.data["format"] == "COO":
-            indices = []
-            idx_dim = 0
-            while "indices_" + str(idx_dim) in array.data:
-                indices.append(array.data["indices_" + str(idx_dim)])
-                idx_dim += 1
-            V = array.data["values"]
-            shape = array.data["shape"]
-            data = self.xp.zeros(shape, dtype=V.dtype)
-            data[tuple(indices)] = V
-            return EagerCheckerTensor(self, data)
-        raise ValueError("Unsupported format: " + array.data["format"])
-
-    def to_benchmark(self, array: CheckerTensor):
-        if isinstance(array, LazyCheckerTensor):
-            raise AssertionError(
-                "Lazy Tensors should always be computed before being converted to"
-                " benchmark format!"
-            )
-        return BinsparseFormat.from_numpy(unwrap(array))
-
-    def lazy(self, array: CheckerTensor):
-        return LazyCheckerTensor(self, array)
-
-    def compute(self, array: CheckerTensor):
-        return EagerCheckerTensor(self, array)
-
-    def einsum(self, prgm, **kwargs):
-        return CheckerOperator(self, self.xp.einsum)(prgm, **kwargs)
-    
-    def with_fill_value(self, array, value):
-        return CheckerOperator(self, self.xp.with_fill_value)(array, value)
-
-    def __getattr__(self, name):
-        return CheckerOperator(self, getattr(self.xp, name))
