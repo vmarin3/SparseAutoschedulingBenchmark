@@ -17,12 +17,13 @@ def gcn_reference(adjacency, features, weights1, bias1, weights2, bias2):
     h1 = adjacency @ features
     h1 = h1 @ weights1 + bias1
     h1 = np.maximum(h1, 0)  # ReLU activation
-    
-    # Layer 2: adjacency @ h1 -> linear transform  
+
+    # Layer 2: adjacency @ h1 -> linear transform
     h2 = adjacency @ h1
     output = h2 @ weights2 + bias2
-    
+
     return output
+
 
 import os
 import pytest
@@ -74,7 +75,9 @@ def suitesparse_adjacency():
             # any unexpected exception, try next candidate
             continue
 
-    pytest.skip("None of the curated SuiteSparse candidates could be fetched/converted in this environment")
+    pytest.skip(
+        "None of the curated SuiteSparse candidates could be fetched/converted in this environment"
+    )
 
 
 def test_gcn_suitesparse(suitesparse_adjacency):
@@ -124,10 +127,10 @@ def test_gcn_suitesparse(suitesparse_adjacency):
             out_arr = np.asarray(vals).reshape(shape)
         else:
             # fallback: try to interpret as numpy
-                try:
-                    out_arr = np.asarray(data)
-                except Exception:
-                    pytest.fail("Could not convert BinsparseFormat output to numpy array")
+            try:
+                out_arr = np.asarray(data)
+            except Exception:
+                pytest.fail("Could not convert BinsparseFormat output to numpy array")
     else:
         # framework-specific objects may provide conversion helper
         if hasattr(out, "to_numpy"):
@@ -193,7 +196,7 @@ def _fetch_and_prepare_suitesparse(matrix_id):
 
     if not mtx_files:
         if p.is_dir():
-            gz = sorted([f for f in p.iterdir() if f.name.lower().endswith('.mtx.gz')])
+            gz = sorted([f for f in p.iterdir() if f.name.lower().endswith(".mtx.gz")])
             if gz:
                 mtx_files = gz
 
@@ -364,7 +367,15 @@ def test_benchmark_gcn(xp, adjacency, features, weights1, bias1, weights2, bias2
     weights2_bin = BinsparseFormat.from_numpy(weights2)
     bias2_bin = BinsparseFormat.from_numpy(bias2)
 
-    output_bin = benchmark_gcn(xp, adjacency_bin, features_bin, weights1_bin, bias1_bin, weights2_bin, bias2_bin)
+    output_bin = benchmark_gcn(
+        xp,
+        adjacency_bin,
+        features_bin,
+        weights1_bin,
+        bias1_bin,
+        weights2_bin,
+        bias2_bin,
+    )
     output_bin = BinsparseFormat.to_coo(output_bin)
 
     assert output_bin == BinsparseFormat.to_coo(BinsparseFormat.from_numpy(output_ref))
