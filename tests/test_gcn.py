@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# ruff: noqa
 import pytest
 
 import numpy as np
@@ -73,66 +75,6 @@ def suitesparse_adjacency():
             continue
 
     pytest.skip("None of the curated SuiteSparse candidates could be fetched/converted in this environment")
-
-    from pathlib import Path
-    from scipy import io as sio
-    from scipy import sparse as _sparse
-    import numpy as _np
-
-    p = Path(local)
-    # prefer .mtx files in the directory
-    mtx_files = []
-    if p.is_file() and p.suffix.lower() in (".mtx",):
-        mtx_files = [p]
-    elif p.is_dir():
-        mtx_files = sorted([f for f in p.iterdir() if f.suffix.lower() == ".mtx"])
-
-    if not mtx_files:
-        # try .mtx.gz
-        if p.is_dir():
-            gz = sorted([f for f in p.iterdir() if f.name.lower().endswith('.mtx.gz')])
-            if gz:
-                mtx_files = gz
-
-    if not mtx_files:
-        pytest.fail(f"No Matrix Market (.mtx) file found in {local}")
-
-    mtx = str(mtx_files[0])
-    try:
-        matdata = sio.mmread(mtx)
-    except Exception as e:
-        pytest.fail(f"Failed to read .mtx file {mtx}: {e}")
-
-    # convert to CSR
-    try:
-        if _sparse.issparse(matdata):
-            A = matdata.tocsr()
-        elif hasattr(matdata, "tocoo"):
-            A = matdata.tocoo().tocsr()
-        else:
-            A = _sparse.csr_matrix(_np.asarray(matdata))
-    except Exception as e:
-        pytest.fail(f"Could not convert downloaded matrix to CSR: {e}")
-
-    # Ensure square
-    if A.ndim != 2 or A.shape[0] != A.shape[1]:
-        pytest.fail(f"Downloaded matrix is not square: shape={A.shape}")
-
-    # Symmetrize and add self-loops to make it suitable as adjacency
-    A = A + A.T
-    try:
-        A.setdiag(1)
-    except Exception:
-        A = A.tolil()
-        A.setdiag(1)
-        A = A.tocsr()
-    A.eliminate_zeros()
-
-    # Return dense numpy array (BinsparseFormat.from_numpy accepts numpy arrays)
-    try:
-        return _np.asarray(A.todense())
-    except Exception:
-        return _np.asarray(A.toarray())
 
 
 def test_gcn_suitesparse(suitesparse_adjacency):
