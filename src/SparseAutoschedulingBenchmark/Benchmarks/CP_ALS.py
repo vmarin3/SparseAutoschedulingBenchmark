@@ -149,3 +149,25 @@ def dg_cp_als_sparse_small():
     max_iter = 50
 
     return (X_bin, rank, max_iter)
+
+def dg_cp_als_factorizable_small():
+    """
+    Generating a small factorizable tensor by creating random factor matrices
+    and reconstructing the tensor from them (tensor should decompose easily 
+    with low reconstruction error).
+    """
+    np.random.seed(0)
+    I, J, K = 20, 20, 20
+    rank = 3
+
+    A = np.random.rand(I, rank).astype(np.float32)
+    B = np.random.ran(J, rank).astype(np.float32)
+    C = np.random.rand(K, rank).astype(np.float32)
+
+    X_dense = np.einsum('ir,jr,kr->ijk', A, B, C)
+    indices = np.nonzero(X_dense)
+    values = X_dense[indices]
+    X_bin = BinsparseFormat.from_coo(indices, values, (I ,J, K))
+    max_iter = 50
+
+    return (X_bin, rank, max_iter)
