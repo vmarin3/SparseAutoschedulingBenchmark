@@ -1,3 +1,13 @@
+import os
+
+import numpy as np
+from scipy.io import mmread
+from scipy.sparse import random
+
+import ssgetpy
+
+from ..BinsparseFormat import BinsparseFormat
+
 """https://arxiv.org/abs/2007.00640 Page 21"""
 
 
@@ -41,3 +51,75 @@ def benchmark_cg(
         it += 1
     x_solution = xp.compute(x)
     return xp.to_benchmark(x_solution)
+
+
+def generate_cg_data(source, has_b_file=False):
+    matrices = ssgetpy.search(name=source)
+    if not matrices:
+        raise ValueError(f"No matrix found with name '{source}'")
+    matrix = matrices[0]
+    (path, archive) = matrix.download(extract=True)
+    matrix_path = os.path.join(path, matrix.name + ".mtx")
+    if matrix_path and os.path.exists(matrix_path):
+        A = mmread(matrix_path)
+    else:
+        raise FileNotFoundError(f"Matrix file not found at {matrix_path}")
+    rng = np.random.default_rng(0)
+    A = A.tocoo()
+
+    if has_b_file:
+        matrices = ssgetpy.search(name=(source + "_b"))
+        if not matrices:
+            raise ValueError(f"No matrix found with name '{source}'")
+        matrix = matrices[0]
+        (path, archive) = matrix.download(extract=True)
+        matrix_path = os.path.join(path, matrix.name + ".mtx")
+        if matrix_path and os.path.exists(matrix_path):
+            b = mmread(matrix_path)
+        else:
+            raise FileNotFoundError(f"Matrix file not found at {matrix_path}")
+        b = b.flatten()
+    else:
+        x = random(
+            A.shape[1], 1, density=0.1, format="coo", dtype=np.float64, random_state=rng
+        )
+        b = A @ x
+        b = b.toarray().flatten()
+    x = np.zeros(A.shape[1])
+
+    A_bin = BinsparseFormat.from_coo((A.row, A.col), A.data, A.shape)
+    b_bin = BinsparseFormat.from_numpy(b)
+    x_bin = BinsparseFormat.from_numpy(x)
+    return (A_bin, b_bin, x_bin)
+
+
+def dg_cg_sparse_1():
+    return generate_cg_data("mesh3em5")
+
+
+def dg_cg_sparse_2():
+    return generate_cg_data("bcsstm02")
+
+
+def dg_cg_sparse_3():
+    return generate_cg_data("fv1")
+
+
+def dg_cg_sparse_4():
+    return generate_cg_data("Muu")
+
+
+def dg_cg_sparse_5():
+    return generate_cg_data("Chem97ZtZ")
+
+
+def dg_cg_sparse_6():
+    return generate_cg_data("Dubcova1")
+
+
+def dg_cg_sparse_7():
+    return generate_cg_data("t3dl_e")
+
+
+def dg_cg_sparse_8():
+    return generate_cg_data("bcsstk09")
