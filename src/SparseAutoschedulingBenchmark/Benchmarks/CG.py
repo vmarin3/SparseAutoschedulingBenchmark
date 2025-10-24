@@ -8,7 +8,29 @@ import ssgetpy
 
 from ..BinsparseFormat import BinsparseFormat
 
-"""https://arxiv.org/abs/2007.00640 Page 21"""
+"""
+Name: Conjugate Gradient Iterative Solver
+Author: Benjamin Berol
+Email: bberol3@gatech.edu
+Motivation:
+"Conjugate gradient is an efficient algorithm for solving large sparse linear systems.
+It has been utilized to accelerate the computation in Bayesian analysis
+for many large-scale problems"
+L. Zhang, "Applications of Conjugate Gradient in Bayesian computation," 2023.
+[Online]. Available: https://arxiv.org/pdf/2308.14828
+Role of Sparsity:
+Each iteration of the conjugate gradient requires a SpMV to compute Ap
+which can be done in O(nnz) time rather than O(n^2) time for dense matrices.
+Implementation:
+Hand-written code modelling the algorithm structure outlined in:
+https://arxiv.org/abs/2007.00640 Page 21
+Data Generation:
+Data collected from SuiteSparse Matrix Collection consisting of symmetric
+positive definite matrices, particularly those with a low convergence criteria.
+Statement on the use of Generative AI:
+No generative AI was used to write the benchmark function itself. Generative
+AI was used to debug code. This statement was written by hand.
+"""
 
 
 def benchmark_cg(
