@@ -23,32 +23,32 @@ def benchmark_cg(
     )
     # tol_sq used to avoid having to sqrt dot products when checking tolerance
     tol_sq = tolerance * tolerance
-    max_iters = min(max_iters, xp.shape(A)[0])
 
     r = b - A @ x
     p = r
     it = 0
     rr = xp.compute(xp.vecdot(r, r))[()]
 
-    while rr >= tol_sq and it < max_iters:
-        Ap = A @ p
-        alpha = rr / xp.vecdot(r, Ap)
-        x += alpha * p
-        r -= alpha * Ap
+    if rr >= tol_sq:
+        while it < max_iters:
+            Ap = A @ p
+            alpha = rr / xp.vecdot(r, Ap)
+            x += alpha * p
+            r -= alpha * Ap
 
-        new_rr = xp.compute(xp.vecdot(r, r))[()]
+            new_rr = xp.compute(xp.vecdot(r, r))[()]
+            it += 1
 
-        if new_rr <= tol_sq:
-            break
+            if new_rr < tol_sq:
+                break
 
-        beta = new_rr / rr
-        p = r + beta * p
-        rr = new_rr
+            beta = new_rr / rr
+            p = r + beta * p
+            rr = new_rr
 
-        x = xp.lazy(xp.compute(x))
-        r = xp.lazy(xp.compute(r))
-        p = xp.lazy(xp.compute(p))
-        it += 1
+            x = xp.lazy(xp.compute(x))
+            r = xp.lazy(xp.compute(r))
+            p = xp.lazy(xp.compute(p))
     x_solution = xp.compute(x)
     return xp.to_benchmark(x_solution)
 
