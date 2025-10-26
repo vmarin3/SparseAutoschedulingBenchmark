@@ -23,7 +23,7 @@ Citation corroborating the choice of data & importance of problem:
 Brin, S., & Page, L. (1998). "The anatomy of a large-scale hypertextual
  Web search engine." *Computer Networks and ISDN Systems*, 30(1-7), 107-117.
 
-Statement on the use of Generative AI: No generative AI was used to construct 
+Statement on the use of Generative AI: No generative AI was used to construct
 the benchmark function itself. Generative AI might have been used to construct
 tests. This statement was written by hand.
 """
