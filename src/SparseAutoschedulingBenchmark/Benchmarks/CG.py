@@ -13,11 +13,10 @@ Name: Conjugate Gradient Iterative Solver
 Author: Benjamin Berol
 Email: bberol3@gatech.edu
 Motivation:
-"Conjugate gradient is an efficient algorithm for solving large sparse linear systems.
-It has been utilized to accelerate the computation in Bayesian analysis
-for many large-scale problems"
-L. Zhang, "Applications of Conjugate Gradient in Bayesian computation," 2023.
-[Online]. Available: https://arxiv.org/pdf/2308.14828
+"The Conjugate Gradient algorithm is one of the best known iterative techniques for
+solving sparse Symmetric Positive Definite linear systems."
+Y. Saad, Iterative Methods for Sparse Linear Systems, 2nd ed. Philadelphia,
+PA: SIAM, 2003, ch. 6.7.
 Role of Sparsity:
 Each iteration of the conjugate gradient requires a SpMV to compute Ap
 which can be done in O(nnz) time rather than O(n^2) time for dense matrices.
@@ -53,12 +52,20 @@ def benchmark_cg(
 
     if rr >= tol_sq:
         while it < max_iters:
+            x = xp.lazy(x)
+            r = xp.lazy(r)
+            p = xp.lazy(p)
+
             Ap = A @ p
             alpha = rr / xp.vecdot(r, Ap)
             x += alpha * p
             r -= alpha * Ap
 
+            x = xp.compute(x)
+            r = xp.compute(r)
+            p = xp.compute(p)
             new_rr = xp.compute(xp.vecdot(r, r))[()]
+
             it += 1
 
             if new_rr < tol_sq:
@@ -68,9 +75,6 @@ def benchmark_cg(
             p = r + beta * p
             rr = new_rr
 
-            x = xp.lazy(xp.compute(x))
-            r = xp.lazy(xp.compute(r))
-            p = xp.lazy(xp.compute(p))
     x_solution = xp.compute(x)
     return xp.to_benchmark(x_solution)
 
@@ -90,16 +94,13 @@ def generate_cg_data(source, has_b_file=False):
     A = A.tocoo()
 
     if has_b_file:
-        matrices = ssgetpy.search(name=(source + "_b"))
-        if not matrices:
-            raise ValueError(f"No matrix found with name '{source}'")
-        matrix = matrices[0]
-        (path, archive) = matrix.download(extract=True)
-        matrix_path = os.path.join(path, matrix.name + ".mtx")
+        matrix_path = os.path.join(path, matrix.name + "_b.mtx")
         if matrix_path and os.path.exists(matrix_path):
             b = mmread(matrix_path)
         else:
             raise FileNotFoundError(f"Matrix file not found at {matrix_path}")
+        if not isinstance(b, np.ndarray):
+            b = b.toarray() if hasattr(b, "toarray") else np.asarray(b)
         b = b.flatten()
     else:
         x = random(
