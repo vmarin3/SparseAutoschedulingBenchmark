@@ -23,16 +23,13 @@ Citation corroborating the choice of data & importance of problem:
 Brin, S., & Page, L. (1998). "The anatomy of a large-scale hypertextual
  Web search engine." *Computer Networks and ISDN Systems*, 30(1-7), 107-117.
 
-Statement on the use of Generative AI:
-AI was not used in order to write this benchmark function.
-AI might have been used for the purposes of genreating
-test cases for the algorithm that was implemented, picking
-up any unfamiliar python syntax, and cleaning up written documentation
-flow.
+Statement on the use of Generative AI: No generative AI was used to construct 
+the benchmark function itself. Generative AI might have been used to construct
+tests. This statement was written by hand.
 """
 
 
-def pagerank(xp, A_binsparse, alpha=0.85, max_iter=100, tol=1e-6):
+def pagerank(xp, A_binsparse, alpha=0.85, max_iter=100, tol=1e-8):
     A = xp.from_benchmark(A_binsparse)
     A = xp.lazy(A)
     out_degree = xp.sum(A, axis=0)
@@ -49,8 +46,9 @@ def pagerank(xp, A_binsparse, alpha=0.85, max_iter=100, tol=1e-6):
     u = xp.full((N,), 1.0 / N)
     for _ in range(max_iter):
         x_new = alpha * xp.matmul(M, x) + (1 - alpha) * u
-        x_new = xp.compute(x_new)
-        if norm(xp, x_new - x) < tol:
+        diff = norm(xp, x_new - x)
+        (x_new, diff) = xp.compute((x_new, diff))
+        if diff < tol:
             break
         x = x_new
     return xp.to_benchmark(x)
